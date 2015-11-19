@@ -1,9 +1,11 @@
 %% startup the maze
 % run this after setting up phasespace, lsl, and sound engine
+clear('mr');
+global mr;
 cd('Z:\audiomaze-2.0')
 current_dir = pwd;
 addpath(current_dir,path);
-maze_init;
+mr = maze_init;
 
 %% main loop
 maze_main_loop;

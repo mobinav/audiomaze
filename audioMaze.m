@@ -16,19 +16,22 @@ classdef audioMaze      % audio maze object
         roomDims        % room dimensions    
         curPt           % current head position (needed?)
         nearestPoints   % list of current nearest points
+        mz_lns          % tmp for debugging
        
     end
     
     methods
-        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
+%         (rm_height, rm_width, n_rows, n_cols, maze_lines)%
+        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
             
            % use this to extend the walls so that they overlap a little
            overLapAmnt = 0; % this is probably stupid
            % .25; % in meters 
            
             % use the maze makers to make the maze
-            [~, mz_lns] = make_maze_polygons(n_rows, n_cols, style, 0, rndmSeed);
-
+            %[~, mz_lns] = make_maze_polygons(n_rows, n_cols, style, 0, rndmSeed);
+            mz_lns = maze_lines;
+            obj.mz_lns = mz_lns;
             % center the lines
             mz_lns = mz_lns-.5;
 
