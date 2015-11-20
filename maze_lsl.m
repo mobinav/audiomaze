@@ -8,7 +8,7 @@ function mr_maze_lsl
 %holdover from datariver days, we'll adapt it for our own purposes if
 %necessary
 global mr;
-global lastHandMarkers;
+
 persistent wallProjectionLocation audioLocation nearWallAccumulator homingSoundTurnedOn
 noHeadCount=0;
 lastHeadMarkerPosition = [0 0 0];
@@ -74,7 +74,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand,:);
     for n=1:length(currentHandMarkers)
         if currentHandMarkers(n, 1:2) == [0 0]
-            currentHandMarkers(n,:) = lastHandMarkers(n,:);
+            currentHandMarkers(n,:) = mr.lastHandMarkers(n,:);
         end
     end
     
@@ -94,7 +94,10 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         [closestWallId closestMarkerId] = find(distances == closestDistance);
         closestWallPoint = nearestPoints{closestMarkerId(1)}(closestWallId(1),:);
         
-
+        if length(closestWallId)>1 % at some corners, it will find two points here and go haywire
+            closestWallId = closestWallId(1); % arbitrarily choose the first one
+            closestMarkerId = closestMarkerId(1); % same thing here
+        end
 %         if 0,
 %             armCentroid = mean(mr.mocap.markerPosition(mr.mocap.markers.rightHand(goodHandMarkerId),:));
 %         else
@@ -129,7 +132,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     end
     
     % history of last good markers
-    lastHandMarkers = currentHandMarkers;
+    mr.lastHandMarkers = currentHandMarkers;
    
     goodMarkerId = find(mr.mocap.markerPosition(mr.mocap.markers.head,3) > -10); %relies on bad markers having negative z (-100)
     headMarkerId = mr.mocap.markers.head(goodMarkerId);

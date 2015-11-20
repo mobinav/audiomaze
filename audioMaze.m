@@ -35,7 +35,7 @@ classdef audioMaze      % audio maze object
             % center the lines
             mz_lns = mz_lns-.5;
 
-            % orient the maze correctly
+            % orient the maze correctly and normalize it
             tmp = mz_lns(:,1:2)/n_cols-.5;
             mz_lns(:,1:2) = (n_rows-mz_lns(:,3:4))/n_rows-.5;
             mz_lns(:,3:4) = tmp;
@@ -125,7 +125,8 @@ classdef audioMaze      % audio maze object
             end
             
 
-            % finally, if a wall has both ends true
+            % if a wall has both ends true, find out which end is actually
+            % dangling
             for n=5:length(obj.mazeWalls)
                if obj.isEnd{n}(1) + obj.isEnd{n}(1) == 2
                   for m=1:4
@@ -137,6 +138,19 @@ classdef audioMaze      % audio maze object
                   end
                end
             end
+            
+            % we also consider convex corners to be floating ends, so find
+            % them
+            % I'm not sure how to do this. It seems that convex and concave
+            % corners are identical. Which side it is on is the determiner,
+            % but judging this is pretty messy (unless there is some
+            % trick).
+            
+%             for n=5:length(obj.mazeWalls)
+%                if 1% two endpoints are touching
+%                    
+%                end
+%             end
             
             % make a list of endpoints for easier searching
             obj.isEndList = {};
@@ -211,6 +225,8 @@ classdef audioMaze      % audio maze object
             % there is one cell for each hand point we are testing
             % we could optimize by taking the centroid, but this may affect
             % believability
+            % actually, now we do use centroid (median, actually), but this
+            % has some unwanted side effects when markers drop out
             
             
             distances = zeros(length(obj.mazeWalls),length(points(:,1)));
