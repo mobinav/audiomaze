@@ -47,12 +47,12 @@ if mr.numberOfFramesInAccumulatedData > 0
     zs(invalidChannelId) = -100;
     
     zOffset = 0;
-%     if mr.mocap.doVrPlot,
-%         mr_show_mocap_markers(xs, ys, zs, zOffset, 'label','off', 'markerSize', 0.1);
-%     end
+    if mr.mocap.doVrPlot,
+        mr_show_mocap_markers(xs, ys, zs, zOffset, 'label','off', 'markerSize', 0.1);
+    end
     
     if mr.mocap.doSimplePlot,
-        figure(11)
+        %figure(11)
         h=findobj(gcf,'tag','markers');
         delete(h)
         ytmp = ys;

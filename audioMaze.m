@@ -16,13 +16,14 @@ classdef audioMaze      % audio maze object
         roomDims        % room dimensions    
         curPt           % current head position (needed?)
         nearestPoints   % list of current nearest points
-        mz_lns          % tmp for debugging
+        mz_lns          % tmp local variable for debugging
+        mz_plygns       % "
        
     end
     
     methods
 %         (rm_height, rm_width, n_rows, n_cols, maze_lines)%
-        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
+        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines, maze_polygons)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
             
            % use this to extend the walls so that they overlap a little
            overLapAmnt = 0; % this is probably stupid
@@ -31,13 +32,12 @@ classdef audioMaze      % audio maze object
             % use the maze makers to make the maze
             %[~, mz_lns] = make_maze_polygons(n_rows, n_cols, style, 0, rndmSeed);
             mz_lns = maze_lines;
-            obj.mz_lns = mz_lns;
             % center the lines
             mz_lns = mz_lns-.5;
 
             % orient the maze correctly and normalize it
             tmp = mz_lns(:,1:2)/n_cols-.5;
-            mz_lns(:,1:2) = (n_rows-mz_lns(:,3:4))/n_rows-.5;
+            mz_lns(:,1:2) = (n_rows - mz_lns(:,3:4))/n_rows-.5;
             mz_lns(:,3:4) = tmp;
             
 %             roomWidth = 8.5598;
@@ -194,6 +194,9 @@ classdef audioMaze      % audio maze object
 
             obj.roomWalls(:,1:2) = obj.roomWallsNrm(:,1:2) * obj.roomDims(1);
             obj.roomWalls(:,3:4) = obj.roomWallsNrm(:,3:4) * obj.roomDims(2);
+            
+            
+            % enable the vr plotting options
             
             
         end

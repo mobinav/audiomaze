@@ -208,7 +208,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     end;
     
     % % DEM 10-21-2015
-    figure(11);
+    %figure(11);
     h=findobj(gcf,'tag','audio_point');
     delete(h)
     plot(projectedAudioPoint(1), projectedAudioPoint(2),'go', 'tag','audio_point', 'markersize',30);
