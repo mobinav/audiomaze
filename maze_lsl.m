@@ -141,6 +141,17 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         %headMarkerPosition = mean(mr.mocap.markerPosition(headMarkerId,:),1);
         headMarkerPosition = nanmedian(mr.mocap.markerPosition(headMarkerId,:),1);
 
+        % DEM 1/7/2016
+        % check to see if the head is within a circle around an overhead
+        % marker
+%          headMarkerPosition
+%          pdist([mr.overheads(1,:); headMarkerPosition([1 2])], 'euclidean')
+        for n=1:mr.n_overheads
+            if pdist([mr.overheads(n,:); headMarkerPosition([1 2])], 'euclidean') < mr.overhead_tol
+                mr.LSL.MaxMSP.send_overhead(n, ''); 
+            
+            end
+        end
         lastHeadMarkerPosition = headMarkerPosition;
         noHeadCount = 0;
     else

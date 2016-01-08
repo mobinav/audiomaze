@@ -5,10 +5,10 @@
 % make_maze_polygons (for a random maze) or make_maze_polygons_nr (for a
 % predetermined maze)
 
-function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
+function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
 
 
-    if nargin < 5
+    if nargin < 4
         doVrPlot = false;
     elseif doVR == false 
         doVrPlot = false;
@@ -47,6 +47,10 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
 
     mr.doVrPlot = doVrPlot;
 
+    mr.n_overheads = 1;
+    mr.overheads = [0,0]; % test, center of room
+    mr.overhead_tol = .1; % 1/10m
+    
     delete(timerfindall);
 
     %makoto mr_init_writing('/tmp/AudioSuite', 10, 20); 
@@ -56,11 +60,7 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
     % for mocap, specify mocap channel subset
     mr.mocap.firstChannel = 1; % first channel is events or should be ignored
     mr.mocap.lastChannel = nan; % use nan to make it until the last one that exist
-    if isempty(maze_polygons)
-        mr.mocap.doVrPlot = false;
-    else
-        mr.mocap.doVrPlot = true; % commenting out this line confused wall warning system and map configuration too (but refresh rate increased up to 40 Hz); don't delete this line.
-    end
+
      mr.mocap.doSimplePlot = true;
 
      
@@ -72,7 +72,7 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
     w = 6.5;
     h = 6.5;
 
-    mr.am = audioMaze(h, w, n_rows, n_cols, maze_lines, maze_polygons);
+    mr.am = audioMaze(h, w, n_rows, n_cols, maze_lines);
 
     figure(11);
     mr.am.plotMaze();
@@ -82,7 +82,7 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
     % mr_mocap_init;
     % from the above (don't know if we even need this
 
-    if mr.mocap.doVrPlot == true;
+    if mr.doVrPlot == true;
         if isfield(mr, 'mocap') && isfield(mr.mocap, 'mocapWorld') && ~isempty(mr.mocap.mocapWorld)
             close(mr.mocap.mocapWorld);
             delete(mr.mocap.mocapWorld);
@@ -102,13 +102,14 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
 
 
         mr.mocap.afterInitCallback = 'mr_draw_maze; mr.mocap.roomWallCollection = vr_add_sccn_mobi_room(mr.mocap.mocapWorld);';
-
+        mr.mocap.mocapWorld = mocapWorld;
+        
         % add boundaries of sccn room
         % copied from vr_add_sccn_mobi_room.m
         roomWallCollection = vrObjectCollection;
         roomWidth = w;
         roomHeight = h;
-        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, -roomWidth]/2, [roomHeight, -roomHeight]/2, 0.3,0.05, true));
+        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, -roomWidth]/2, [roomHeight, -roomHeight]/2, 0.3,0.05, true));     
         roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, roomWidth]/2, [-roomHeight, -roomHeight]/2, 0.3,0.05, true));
         roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, roomWidth]/2, [roomHeight, roomHeight]/2, 0.3,0.05, true));
         roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [roomWidth, roomWidth]/2, [roomHeight, -roomHeight]/2, 0.3,0.05, true));
@@ -128,32 +129,38 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
         % values are from the original call from mr_maze_with_lsl.m
         xScale = 1.5;
         yScale = 2;
-        wallHeight = .1;
-        wallThickness = 2;
+        wallHeight = 1;
+        wallThickness = .2;
         
         xOffset = mean(mean(maze_lines(:, 1:2))) - 0.15;
         yOffset = mean(mean(maze_lines(:, 3:4))) - 0.15;
 
-        mazeLinesForVr = maze_lines;
-        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2) - xOffset;
-        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4) - yOffset;
+        mazeLinesForVr = mr.am.mazeWalls;
+        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2);% - xOffset;
+        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4);% - yOffset;
 
         % scale the maze
         
         %mazeLinesForVr = mazeLinesForVr * scale;
-        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2) * xScale;
-        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4) * yScale;
+        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2);% * xScale;
+        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4);% * yScale;
 
         % scale ground box
         % mazeXextent = max(max(mazeLinesForVr(:, 1:2))) - min(min(mazeLinesForVr(:, 1:2)));
         % mazeYextent = max(max(mazeLinesForVr(:, 3:4))) - min(min(mazeLinesForVr(:, 3:4)));
         % myworld.ground_box.size = [mazeXextent mazeYextent 5];
 
-        wallCollection = vrObjectCollection;
+        
         for i=1:size(maze_lines,1)
-            wallCollection = wallCollection.add(vrVerticalWall(mr.mocap.mocapWorld, mazeLinesForVr(i, 1:2), mazeLinesForVr(i, 3:4) , wallHeight, wallThickness, true));
+            mr.mocap.roomWallCollection = mr.mocap.roomWallCollection.add(vrVerticalWall(mr.mocap.mocapWorld, mazeLinesForVr(i, 1:2), mazeLinesForVr(i, 3:4) , wallHeight, wallThickness, true));
         end;
 
+%         wallCollection = vrObjectCollection;
+%         for i=1:size(maze_lines,1)
+%             wallCollection = wallCollection.add(vrVerticalWall(mr.mocap.mocapWorld, mazeLinesForVr(i, 1:2), mazeLinesForVr(i, 3:4) , wallHeight, wallThickness, true));
+%         end;
+        figureHandle = view(mr.mocap.mocapWorld);
+        vrdrawnow;
    end
 
     %% initialize LSL, connect to MaxMSP (via patch lslreceive)
@@ -163,12 +170,18 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
 
     %init outlets to MAX
     disp('Initializing LSL outputs to MAX/MSP')
+    
     mr.LSL.MaxMSP.streamInfo(1) = lsl_streaminfo(mr.LSL.lib,'fileplay','AudioControl',6,0,'cf_string','fileplay_AudioControl');
     mr.LSL.MaxMSP.outlet(1) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(1));
+    
     mr.LSL.MaxMSP.streamInfo(2) = lsl_streaminfo(mr.LSL.lib,'handproximity','AudioControl',3,0,'cf_string','handproximity_AudioControl');
     mr.LSL.MaxMSP.outlet(2) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(2));
+    
     mr.LSL.MaxMSP.streamInfo(3) = lsl_streaminfo(mr.LSL.lib,'noisepitch','AudioControl',2,0,'cf_string','noisepitch_AudioControl');
     mr.LSL.MaxMSP.outlet(3) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(3));
+   
+    mr.LSL.MaxMSP.streamInfo(4) = lsl_streaminfo(mr.LSL.lib,'overhead','AudioControl',2,0,'cf_string','overhead_AudioControl');
+    mr.LSL.MaxMSP.outlet(4) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(4));
     % functions to play a beacon sound, or wall-proximity sound
     % using previous convention of first 6 values being commands to play beacon
     % sounds from a given azimuth. To control wall proximity sounds, the azimuth, scaled
@@ -186,6 +199,8 @@ function mr = maze_init(maze_lines, maze_polygons, n_rows, n_cols, doVR)
         mr.LSL.MaxMSP.outlet(2).push_sample({num2str(proximityDistance), num2str(proximityAzimuth), proximityEventCode});
     mr.LSL.MaxMSP.send_noise_freq = @(pitch, fooEventCode) ...
         mr.LSL.MaxMSP.outlet(3).push_sample({num2str(pitch), fooEventCode});
+    mr.LSL.MaxMSP.send_overhead = @(which, fooEventCode) ...
+        mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), fooEventCode});
 
     %% init input from phasespace
     streaminfo = {};

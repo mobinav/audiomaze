@@ -47,7 +47,7 @@ if mr.numberOfFramesInAccumulatedData > 0
     zs(invalidChannelId) = -100;
     
     zOffset = 0;
-    if mr.mocap.doVrPlot,
+    if mr.doVrPlot,
         mr_show_mocap_markers(xs, ys, zs, zOffset, 'label','off', 'markerSize', 0.1);
     end
     
