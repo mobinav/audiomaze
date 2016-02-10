@@ -79,8 +79,6 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
     hold on;
     
     %% vr world stuff
-    % mr_mocap_init;
-    % from the above (don't know if we even need this
 
     if mr.doVrPlot == true;
         if isfield(mr, 'mocap') && isfield(mr.mocap, 'mocapWorld') && ~isempty(mr.mocap.mocapWorld)
@@ -92,73 +90,9 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
         mocapWorld = vrworld(vr_path, 'new');
         open(mocapWorld);
 
-        
-
-        % mr.mocap.afterInitCallback is a callbck (function or script as string) to be executed after mocap vrml figure
-        % is created
-        if~isfield(mr.mocap, 'afterInitCallback')
-            mr.mocap.afterInitCallback = '';
-        end;
-
-
-        mr.mocap.afterInitCallback = 'mr_draw_maze; mr.mocap.roomWallCollection = vr_add_sccn_mobi_room(mr.mocap.mocapWorld);';
         mr.mocap.mocapWorld = mocapWorld;
+        mr.mocap.roomWallCollection = vr_draw_maze(mr.mocap.mocapWorld, mr.am); 
         
-        % add boundaries of sccn room
-        % copied from vr_add_sccn_mobi_room.m
-        roomWallCollection = vrObjectCollection;
-        roomWidth = w;
-        roomHeight = h;
-        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, -roomWidth]/2, [roomHeight, -roomHeight]/2, 0.3,0.05, true));     
-        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, roomWidth]/2, [-roomHeight, -roomHeight]/2, 0.3,0.05, true));
-        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [-roomWidth, roomWidth]/2, [roomHeight, roomHeight]/2, 0.3,0.05, true));
-        roomWallCollection = roomWallCollection.add(vrVerticalWall(mocapWorld, [roomWidth, roomWidth]/2, [roomHeight, -roomHeight]/2, 0.3,0.05, true));
-
-        % extend the geometrical representation of walls to extend from very low to
-        % very high and cover the whole height of the room
-        for i=1:4
-            roomWallCollection.object{i}.prism.polygon(3, 1:2) = [-10000 -10000];
-            roomWallCollection.object{i}.prism.polygon(3, 3:4) = [10000 10000];
-        end;
-        mr.mocap.roomWallCollection = roomWallCollection; 
-        mr.mocap.mocapWorld = mocapWorld;
-        
-
-        
-        %% from vr_add_maze
-        % values are from the original call from mr_maze_with_lsl.m
-        xScale = 1.5;
-        yScale = 2;
-        wallHeight = 1;
-        wallThickness = .2;
-        
-        xOffset = mean(mean(maze_lines(:, 1:2))) - 0.15;
-        yOffset = mean(mean(maze_lines(:, 3:4))) - 0.15;
-
-        mazeLinesForVr = mr.am.mazeWalls;
-        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2);% - xOffset;
-        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4);% - yOffset;
-
-        % scale the maze
-        
-        %mazeLinesForVr = mazeLinesForVr * scale;
-        mazeLinesForVr(:,1:2) = mazeLinesForVr(:,1:2);% * xScale;
-        mazeLinesForVr(:,3:4) = mazeLinesForVr(:,3:4);% * yScale;
-
-        % scale ground box
-        % mazeXextent = max(max(mazeLinesForVr(:, 1:2))) - min(min(mazeLinesForVr(:, 1:2)));
-        % mazeYextent = max(max(mazeLinesForVr(:, 3:4))) - min(min(mazeLinesForVr(:, 3:4)));
-        % myworld.ground_box.size = [mazeXextent mazeYextent 5];
-
-        
-        for i=1:size(maze_lines,1)
-            mr.mocap.roomWallCollection = mr.mocap.roomWallCollection.add(vrVerticalWall(mr.mocap.mocapWorld, mazeLinesForVr(i, 1:2), mazeLinesForVr(i, 3:4) , wallHeight, wallThickness, true));
-        end;
-
-%         wallCollection = vrObjectCollection;
-%         for i=1:size(maze_lines,1)
-%             wallCollection = wallCollection.add(vrVerticalWall(mr.mocap.mocapWorld, mazeLinesForVr(i, 1:2), mazeLinesForVr(i, 3:4) , wallHeight, wallThickness, true));
-%         end;
         figureHandle = view(mr.mocap.mocapWorld);
         vrdrawnow;
    end

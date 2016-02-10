@@ -7,13 +7,13 @@ current_dir = pwd;
 addpath(current_dir,path);
 addpath(strcat(current_dir,'\vr'));
 
-n_rows = 3;
-n_cols = 3;
+n_rows = 5;
+n_cols = 5;
 % make a randomly seeded maze:
-random_seed = 1;
-[mz_poly, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', .1, random_seed)
+random_seed = 12;
+[~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', .05, random_seed)
 
-%%
+
 % make a prescribed maze (see testMazeBuilder for details)
 % maze_c = [0,1; 1,0; 0,0; 0,0; 1,1; 0,0; 0,0; 0,0; 0,0];
 % [mz_poly, mz_lns] = make_maze_polygons_nr(n_rows, n_cols,0, maze_c(:,1), maze_c(:,2));
@@ -21,7 +21,7 @@ random_seed = 1;
 % note : this could be better designed in terms of i/o and arguments
 % maze_init  should call make_maze_polygons_xx so that the user supplies
 % merely rows, columns, and a maze representation or random seed
-mr = maze_init(mz_lns, mz_poly, n_rows, n_cols, true); 
+mr = maze_init(mz_lns, n_rows, n_cols, true); 
 
 
 %% main loop

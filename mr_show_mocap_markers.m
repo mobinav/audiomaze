@@ -40,6 +40,8 @@ if isempty(figureHandle) || ~isvalid(figureHandle) || (~strcmp(lastLabelOption, 
         eval(mr.mocap.afterInitCallback);
     end;
     
+    mr.mocap.roomWallCollection = vr_draw_maze(mr.mocap.mocapWorld, mr.am); 
+    
     % create a vrml display figure
     figureHandle = view(mr.mocap.mocapWorld);
     vrdrawnow;
