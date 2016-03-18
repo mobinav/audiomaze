@@ -14,16 +14,17 @@ classdef audioMaze      % audio maze object
         roomWallsNrm    % outer walls of the room (used to pinpoint audio)
         roomWalls       % the same but scaled by room dims
         roomDims        % room dimensions    
+        mbyn            % mxn size of maze
         curPt           % current head position (needed?)
         nearestPoints   % list of current nearest points
-        mz_lns          % tmp local variable for debugging
+        %mz_lns          % tmp local variable for debugging
         mz_plygns       % "
        
     end
     
     methods
 %         (rm_height, rm_width, n_rows, n_cols, maze_lines)%
-        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines, maze_polygons)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
+        function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
             
            % use this to extend the walls so that they overlap a little
            overLapAmnt = 0; % this is probably stupid
@@ -46,9 +47,10 @@ classdef audioMaze      % audio maze object
             % apply it to the object
             obj.mazeWallsNrm = mz_lns;
             obj.roomDims = [rm_height rm_width];
+            obj.mbyn = [n_rows, n_cols];
             
-            obj.mazeWalls(:,1:2) = obj.mazeWallsNrm(:,1:2) * obj.roomDims(1);
-            obj.mazeWalls(:,3:4) = obj.mazeWallsNrm(:,3:4) * obj.roomDims(2);
+            obj.mazeWalls(:,1:2) = obj.mazeWallsNrm(:,1:2) * obj.roomDims(2);
+            obj.mazeWalls(:,3:4) = obj.mazeWallsNrm(:,3:4) * obj.roomDims(1);
   
             % find which walls neighbor which others, one to many
             obj.hasNeighbors = {};

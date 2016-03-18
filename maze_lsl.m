@@ -86,9 +86,11 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     % plot beam to the closest WallPoint
     goodHandMarkerId = find(mr.mocap.markerPosition(mr.mocap.markers.rightHand,3)> -10);
     if ~isempty(goodHandMarkerId),
-        % nearest point on every wall
+        
+        % find hand location
         armCentroid = median(currentHandMarkers);
         
+        % find the nearest wall and the nearest point on that wall
         [nearestPoints, distances] = mr.am.findNearestPoints(armCentroid);%(mr.mocap.markerPosition(mr.mocap.markers.rightHand,:));
         closestDistance = min(distances(:));
         [closestWallId closestMarkerId] = find(distances == closestDistance);
@@ -103,6 +105,8 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
 %         else
 %             armCentroid = mr.mocap.markerPosition(mr.mocap.markers.rightHand(closestMarkerId(1)),:);
 %         end
+
+        % append the plot
         h=findobj(gcf,'tag','closestWall');
         delete(h)
         g=findobj(gcf,'tag','closestWallNeighbors');
@@ -110,6 +114,8 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         len = length(mr.am.mazeWalls);
         for n=1:len
             if n==closestWallId
+                % redraw the closest wall and its nehigbors,
+                % (walls touching) with a new color
                 line(mr.am.mazeWalls(n,1:2), mr.am.mazeWalls(n,3:4), 'linewidth', 10, 'color',[.5 .5 .5], 'tag', 'closestWall');
                 if ~isempty(mr.am.hasNeighbors{n})
                     for m=1:length(mr.am.hasNeighbors{n})
@@ -118,6 +124,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
                 end
             end
         end
+        % plot the line from the hand to the nearest wall point
         h=findobj(gcf,'tag','wallDistanceBeam');
         delete(h)
         plot([armCentroid(1) closestWallPoint(1)],[armCentroid(2) closestWallPoint(2)], 'r', 'tag','wallDistanceBeam')
@@ -146,11 +153,27 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         % marker
 %          headMarkerPosition
 %          pdist([mr.overheads(1,:); headMarkerPosition([1 2])], 'euclidean')
-        for n=1:mr.n_overheads
-            if pdist([mr.overheads(n,:); headMarkerPosition([1 2])], 'euclidean') < mr.overhead_tol
-                mr.LSL.MaxMSP.send_overhead(n, ''); 
+        for n=find(mr.tokens.wired) % go through the wired speakers
             
+            dist = pdist([mr.tokens.mocapLocs(n,:); headMarkerPosition([1 2])], 'euclidean'); % get the distance
+            if(n==1) 
+                title(['head ' num2str(headMarkerPosition(1)) ' ' num2str(headMarkerPosition(2)) ' token ' num2str(mr.tokens.mocapLocs(n,1)) ' ' num2str(mr.tokens.mocapLocs(n,2)) ' dist' num2str(dist) 'm'])
             end
+            if mr.tokens.active(n) == 0 % it is wired, but not active
+                if dist>mr.outTokenTol % check to see if we are far enough to reactivate
+                    mr.tokens.active(n) = 1;
+                    h=findobj(gcf,'tag','token');
+                    delete(h)
+                end
+            else% it is wired and active, check to see if we are in it
+                if dist < mr.inTokenTol
+                    plot(mr.tokens.mocapLocs(n,1),mr.tokens.mocapLocs(n,2),'g.','tag','markers','markersize',40)
+                    % yes we are, play the sound
+                    whatSound = mr.tokens.soundMap(n,2);
+                    mr.LSL.MaxMSP.send_overhead(n, whatSound); 
+                    mr.tokens.active(n) = 0;
+                end
+            end   
         end
         lastHeadMarkerPosition = headMarkerPosition;
         noHeadCount = 0;

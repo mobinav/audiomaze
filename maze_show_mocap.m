@@ -62,6 +62,8 @@ if mr.numberOfFramesInAccumulatedData > 0
         xtmp(bad)=nan;
         plot(-ytmp(mr.mocap.markers.head),xtmp(mr.mocap.markers.head),'.','tag','markers','markersize',20)
         plot(-ytmp(mr.mocap.markers.rightHand),xtmp(mr.mocap.markers.rightHand),'r.','tag','markers','markersize',20)
+        plot(mr.tokens.mocapLocs(:,1),mr.tokens.mocapLocs(:,2),'g.','tag','markers','markersize',20)
+
         
         set(gca, 'XDir', 'reverse');
         set(gca, 'YDir', 'reverse');

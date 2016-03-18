@@ -5,7 +5,7 @@
 % make_maze_polygons (for a random maze) or make_maze_polygons_nr (for a
 % predetermined maze)
 
-function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
+function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
 
 
     if nargin < 4
@@ -23,6 +23,9 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
     mr.functionHandle = [];
     mr.samplingRate  = 512;%512;
     mr.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
+    
+    mr.h = h;
+    mr.w = w;
     
     % note: added 11/13/15 DEM
     % mechanism for dealing with emitter drop errors
@@ -47,10 +50,11 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
 
     mr.doVrPlot = doVrPlot;
 
-    mr.n_overheads = 1;
-    mr.overheads = [0,0]; % test, center of room
-    mr.overhead_tol = .1; % 1/10m
     
+    mr.overheads = [0,0]; % test, center of room
+    mr.n_overheads = 1;
+    mr.inTokenTol = .2; % 1/10m
+    mr.outTokenTol = .5; % you must get this far away until you can replay
     delete(timerfindall);
 
     %makoto mr_init_writing('/tmp/AudioSuite', 10, 20); 
@@ -68,15 +72,13 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
 
 
     % for the maze
-    % room dimensions
-    w = 6.5;
-    h = 6.5;
-
-    mr.am = audioMaze(h, w, n_rows, n_cols, maze_lines);
+    
+    mr.am = audioMaze(mr.h, mr.w, n_rows, n_cols, maze_lines);
 
     figure(11);
     mr.am.plotMaze();
     hold on;
+    
     
     %% vr world stuff
 
@@ -133,8 +135,8 @@ function mr = maze_init(maze_lines, n_rows, n_cols, doVR)
         mr.LSL.MaxMSP.outlet(2).push_sample({num2str(proximityDistance), num2str(proximityAzimuth), proximityEventCode});
     mr.LSL.MaxMSP.send_noise_freq = @(pitch, fooEventCode) ...
         mr.LSL.MaxMSP.outlet(3).push_sample({num2str(pitch), fooEventCode});
-    mr.LSL.MaxMSP.send_overhead = @(which, fooEventCode) ...
-        mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), fooEventCode});
+    mr.LSL.MaxMSP.send_overhead = @(which, what) ...
+        mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), num2str(what)});
 
     %% init input from phasespace
     streaminfo = {};

@@ -1,3 +1,5 @@
+% TODO distinguish head and hand markers by color
+
 function mr_show_mocap_markers(xs, ys, zs, zOffset, varargin)
 
 global mr;
