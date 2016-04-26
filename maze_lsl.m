@@ -12,9 +12,12 @@ global mr;
 persistent wallProjectionLocation audioLocation nearWallAccumulator homingSoundTurnedOn
 noHeadCount=0;
 lastHeadMarkerPosition = [0 0 0];
-closestWallPoint = [0 0];
-closestDistance = 1;
-closestWallId = 1;
+closestWallPointHand = [0 0];
+closestDistanceHand = 1;
+closestWallIdHand = 1;
+closestWallPointHead = [0 0];
+closestDistanceHead = 1;
+closestWallIdHead = 1;
 inWallId = 1;
 isInWall = false;
 wasInWall = false;
@@ -32,30 +35,25 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     
     
     % target sound
-    if  isempty(homingSoundTurnedOn),
-        % evet-code-to-datariver control1 (angle) control2(azimuth)
-        % event_to_be returned_in_audioSend volume azimuth repeat on/off
-        % filename
-        %mr.LSL.MaxMSP.play_sound(3, 1, 1, 140, 95, 'beacon3'); %sound number 3, loop, from azimuth 135 degrees
-        %mr.LSL.MaxMSP.play_sound(0, 0, 0, 0, 0, 0); %? turn all off?
-        %disp('Will be replaced with LSL') % mr_write_buffer('/tmp/AudioSuite', 0, [0  0 0 3 110 135 1 1 3]');
-        %disp('Will be replaced with LSL') % mr_write_buffer('/tmp/AudioSuite', 0, [0  0 0 0 0 0 0 0 0]');
-        
-        homingSoundTurnedOn = true;
-        tic;
-    else
-        %mr.LSL.MaxMSP.play_sound(3, 0, 0, 135, 110, 'beacon3'); %sound number 3, loop, from azimuth 135 degrees
-    end;
-    % homing sound
-%     if toc > 10
-%         mr_write_buffer('/tmp/AudioSuite',  [0 0 0 4 110 0 0 1 3]');
-%         mr_write_buffer('/tmp/AudioSuite',  [0 0 0 0 0 0 0 0 0]');
-%         tic
+%     if  isempty(homingSoundTurnedOn),
+%         % evet-code-to-datariver control1 (angle) control2(azimuth)
+%         % event_to_be returned_in_audioSend volume azimuth repeat on/off
+%         % filename
+%         %mr.LSL.MaxMSP.play_sound(3, 1, 1, 140, 95, 'beacon3'); %sound number 3, loop, from azimuth 135 degrees
+%         %mr.LSL.MaxMSP.play_sound(0, 0, 0, 0, 0, 0); %? turn all off?
+%         %disp('Will be replaced with LSL') % mr_write_buffer('/tmp/AudioSuite', 0, [0  0 0 3 110 135 1 1 3]');
+%         %disp('Will be replaced with LSL') % mr_write_buffer('/tmp/AudioSuite', 0, [0  0 0 0 0 0 0 0 0]');
+%         
+%         homingSoundTurnedOn = true;
+%         tic;
+%     else
+%         %mr.LSL.MaxMSP.play_sound(3, 0, 0, 135, 110, 'beacon3'); %sound number 3, loop, from azimuth 135 degrees
 %     end;
-    
-    if isempty(nearWallAccumulator)
-        nearWallAccumulator = 0;
-    end;
+% 
+%     
+%     if isempty(nearWallAccumulator)
+%         nearWallAccumulator = 0;
+%     end;
         
      % MM/JRI use first 4 sensors, which is defined as head in the montage
     %  Head marker is so important for localization, we're using four
@@ -71,7 +69,11 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
 
     % 11/13/2015 DEM
     % using lastHandMarkers to fill in 'bad' markers
-    currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand,:);
+    currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand,:); % all hand
+    % just fingertips
+     %currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand(1:4),:);  
+     %currentHandMarkers = [currentHandMarkers;mr.mocap.markerPosition(mr.mocap.markers.rightHand(6),:)];
+     
     for n=1:length(currentHandMarkers)
         if currentHandMarkers(n, 1:2) == [0 0]
             currentHandMarkers(n,:) = mr.lastHandMarkers(n,:);
@@ -90,15 +92,18 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         % find hand location
         armCentroid = median(currentHandMarkers);
         
-        % find the nearest wall and the nearest point on that wall
+        % find the nearest wall and the nearest point on that wall to the
+        % hand
         [nearestPoints, distances] = mr.am.findNearestPoints(armCentroid);%(mr.mocap.markerPosition(mr.mocap.markers.rightHand,:));
-        closestDistance = min(distances(:));
-        [closestWallId closestMarkerId] = find(distances == closestDistance);
-        closestWallPoint = nearestPoints{closestMarkerId(1)}(closestWallId(1),:);
+        closestDistanceHand = min(distances(:));
+        [closestWallIdHand closestMarkerIdHand] = find(distances == closestDistanceHand);
+        closestWallPointHand = nearestPoints{closestMarkerIdHand(1)}(closestWallIdHand(1),:);
         
-        if length(closestWallId)>1 % at some corners, it will find two points here and go haywire
-            closestWallId = closestWallId(1); % arbitrarily choose the first one
-            closestMarkerId = closestMarkerId(1); % same thing here
+
+        
+        if length(closestWallIdHand)>1 % at some corners, it will find two points here and go haywire
+            closestWallIdHand = closestWallIdHand(1); % arbitrarily choose the first one
+            closestMarkerIdHand = closestMarkerIdHand(1); % same thing here
         end
 %         if 0,
 %             armCentroid = mean(mr.mocap.markerPosition(mr.mocap.markers.rightHand(goodHandMarkerId),:));
@@ -113,7 +118,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         delete(g)
         len = length(mr.am.mazeWalls);
         for n=1:len
-            if n==closestWallId
+            if n==closestWallIdHand
                 % redraw the closest wall and its nehigbors,
                 % (walls touching) with a new color
                 line(mr.am.mazeWalls(n,1:2), mr.am.mazeWalls(n,3:4), 'linewidth', 10, 'color',[.5 .5 .5], 'tag', 'closestWall');
@@ -127,7 +132,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         % plot the line from the hand to the nearest wall point
         h=findobj(gcf,'tag','wallDistanceBeam');
         delete(h)
-        plot([armCentroid(1) closestWallPoint(1)],[armCentroid(2) closestWallPoint(2)], 'r', 'tag','wallDistanceBeam')
+        plot([armCentroid(1) closestWallPointHand(1)],[armCentroid(2) closestWallPointHand(2)], 'r', 'tag','wallDistanceBeam')
         %title(['Distance to the closest wall ' num2str(closestDistance) 'm'])
         
 %         h=findobj(gcf,'tag','closestWallPoint');
@@ -170,7 +175,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
                     plot(mr.tokens.mocapLocs(n,1),mr.tokens.mocapLocs(n,2),'g.','tag','markers','markersize',40)
                     % yes we are, play the sound
                     whatSound = mr.tokens.soundMap(n,2);
-                    mr.LSL.MaxMSP.send_overhead(n, whatSound); 
+                    mr.LSL.MaxMSP.send_overhead(n, whatSound, 'foo'); 
                     mr.tokens.active(n) = 0;
                 end
             end   
@@ -189,7 +194,14 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
             fprintf(2,'No Head Markers!\n')
         end
     end
-%     
+    
+    % find the nearest wall and the nearest point on that wall to the
+    % hand
+    [nearestPoints, distances] = mr.am.findNearestPoints((mr.mocap.markerPosition(mr.mocap.markers.head,:)));
+    closestDistanceHead = min(distances(:));
+    [closestWallIdHead closestMarkerIdHead] = find(distances == closestDistanceHead);
+    closestWallPointHead = nearestPoints{closestMarkerIdHead(1)}(closestWallIdHead(1),:);
+     
 %     %JRI: determine if hand is 'through' the wall--defined as when the 
 %     %  closestWallPoint is closer to the head than is the 'armCentroid'
 %     
@@ -207,63 +219,66 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     
     % this will have to be adjusted to make way for the new code style
     if performDirectionSmoothing
-        standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo = 0.3 ^ 2;
-        sumWeightedVector = 0;
-        sumWeight = 0;
-        
-        for i=1:size(closestPointForAllWalls,1)
-            wallVector = closestPointForAllWalls(i,:) - headMarkerPosition;
-            wallVector = wallVector / norm(wallVector,'fro');
-            wallWeight(i) = sqrt(1/(2 * pi * standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo)) * exp(-distanceToWalls(i).^2 / (2 * standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo));
-            sumWeightedVector = sumWeightedVector + wallVector * wallWeight(i);
-            sumWeight = sumWeight + wallWeight(i);
-        end;
-        
-        %plot(wallWeight/sum(wallWeight));
-        % plot(closestPointForAllWalls(:,1), closestPointForAllWalls(:,2),'o');
-        finalVector = sumWeightedVector / sumWeight;
-        
-        %        [dummy id] = min(distanceToWalls);
-        %        finalVector = closestPointForAllWalls(id,:) - headMarkerPosition;
-        %
-        projectedAudioPoint = mr.mocap.roomWallCollection.is_pointed_to_from(headMarkerPosition, finalVector);
-        projectedAudioPoint(3) = 0;
+%         standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo = 0.3 ^ 2;
+%         sumWeightedVector = 0;
+%         sumWeight = 0;
+%         
+%         for i=1:size(closestPointForAllWalls,1)
+%             wallVector = closestPointForAllWalls(i,:) - headMarkerPosition;
+%             wallVector = wallVector / norm(wallVector,'fro');
+%             wallWeight(i) = sqrt(1/(2 * pi * standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo)) * exp(-distanceToWalls(i).^2 / (2 * standardDeviationOfEstimatedErrorInDipoleLocationPowerTwo));
+%             sumWeightedVector = sumWeightedVector + wallVector * wallWeight(i);
+%             sumWeight = sumWeight + wallWeight(i);
+%         end;
+%         
+%         %plot(wallWeight/sum(wallWeight));
+%         % plot(closestPointForAllWalls(:,1), closestPointForAllWalls(:,2),'o');
+%         finalVector = sumWeightedVector / sumWeight;
+%         
+%         %        [dummy id] = min(distanceToWalls);
+%         %        finalVector = closestPointForAllWalls(id,:) - headMarkerPosition;
+%         %
+%         projectedAudioPointHand = mr.mocap.roomWallCollection.is_pointed_to_from(headMarkerPosition, finalVector);
+%         projectedAudioPointHand(3) = 0;
     else
         % find projection of head to closest maze point and extended to the room
         % perimeter, which has the speakers
         
         
-        projectedAudioPoint = mr.am.findAudioProjection(headMarkerPosition(1:2), closestWallPoint);
+        projectedAudioPointHand = mr.am.findAudioProjection(headMarkerPosition(1:2), closestWallPointHand);
+        projectedAudioPointHead = mr.am.findAudioProjection(headMarkerPosition(1:2), closestWallPointHead);
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%% rewrite, without wallCollection nonesense
         %projectedAudioPoint = mr.mocap.roomWallCollection.is_pointed_to_from(headMarkerPosition, closestWallPoint - headMarkerPosition);
-        projectedAudioPoint(3) = 0;
+        projectedAudioPointHand(3) = 0;
     end;
     
     % % DEM 10-21-2015
     %figure(11);
     h=findobj(gcf,'tag','audio_point');
     delete(h)
-    plot(projectedAudioPoint(1), projectedAudioPoint(2),'go', 'tag','audio_point', 'markersize',30);
-    angleForInRoom = rad2deg(atan2(projectedAudioPoint(1), projectedAudioPoint(2))); 
+    plot(projectedAudioPointHand(1), projectedAudioPointHand(2),'go', 'tag','audio_point', 'markersize',30);
+    angleForInRoomHand = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
+    angleForInRoomHead = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2))); 
     
     
     % DEM 11/13/2015 -- determine if hand is through the wall
     C = armCentroid;
     D = headMarkerPosition;
+    % TODO: determine whether the head or the hand crossed the wall?
     if ~wasInWall
 
 
-        for n=1:length(mr.am.hasNeighbors{closestWallId})
-            A = mr.am.mazeWalls(mr.am.hasNeighbors{closestWallId}(n),1:2:3);
-            B = mr.am.mazeWalls(mr.am.hasNeighbors{closestWallId}(n),2:2:4);
+        for n=1:length(mr.am.hasNeighbors{closestWallIdHand})
+            A = mr.am.mazeWalls(mr.am.hasNeighbors{closestWallIdHand}(n),1:2:3);
+            B = mr.am.mazeWalls(mr.am.hasNeighbors{closestWallIdHand}(n),2:2:4);
 
 
             isInWall = doesIntersect(A, B, C, D);
             if isInWall
-                valueToSend = 0;
-                inWallId = closestWallId;
+                valueToSendHand = 0;
+                inWallId = closestWallIdHand;
                % plot(closestWallPoint(1), closestWallPoint(2), 'red.', 'tag','closestWallPoint', 'markersize', 60)
                 break;
             end
@@ -275,15 +290,14 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     end
     wasInWall = isInWall;
     
-    proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
-    if  closestDistance > proximityDistanceThreshold & ~isInWall
-        valueToSend = 999;
+    if  closestDistanceHand > mr.proximityDistanceThreshold & ~isInWall
+        valueToSendHand = 999;
         nearWallAccumulator = nearWallAccumulator - 2;
         nearWallAccumulator = max(nearWallAccumulator, 0); % do not let it become negative.
         
     else
 
-        valueToSend = (closestDistance/proximityDistanceThreshold)^1;
+        valueToSendHand = (closestDistanceHand/mr.proximityDistanceThreshold)^1;
         nearWallAccumulator = nearWallAccumulator + 1;      
         
     end
@@ -296,9 +310,9 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     %angleForInRoom = rad2deg(atan2(-projectedAudioPoint(2), projectedAudioPoint(1))); % x and y are swapped since spat uses angle to y axis
 
     noiseFreq = 1;
-    if closestWallId < 5 % we are near an outer wall
+    if closestWallIdHand < 5 % we are near an outer wall
         noiseFreq = 1;
-    elseif mr.am.isPointFloating(closestWallPoint)
+    elseif mr.am.isPointFloating(closestWallPointHand) % check if the hand is near the end of disconnected wall point
         noiseFreq = 2;
         
 %         h=findobj(gcf,'tag','closestFloatingPoint');
@@ -310,22 +324,61 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     end
     mr.LSL.MaxMSP.send_noise_freq(noiseFreq, '');
     
-    if valueToSend == 999 % not near enough to the wall
-        mr.LSL.MaxMSP.send_hand_proximity(valueToSend, angleForInRoom, ''); %do we want to send this repeatedly??
-        %mr_write_buffer('/tmp/AudioSuite', 0, [0  angleForInRoom valueToSend 0 0 0 0 0 0 0]');
-        
-    else
-        if isInWall % flag as to whether or not we are in the wall
-            valueToSend = 0;
+    % routine for keeping track of time passed
+    time_is = lsl_local_clock(mr.LSL.lib);
+    time_diff =  time_is - mr.time_was;
+    mr.time_was = time_is;
+    
+    if valueToSendHand == 999 % not near enough to the wall
+        mr.LSL.MaxMSP.send_hand_proximity(valueToSendHand, angleForInRoomHand, '');
+        if mr.was_near_wall == 1
+            % TODO?: send event showing time near wall?
+            % reset the near wall state and time
+            mr.was_near_wall = 0;
+            mr.total_time_near_wall = mr.total_time_near_wall+ mr.time_near_wall; % update total time near wall
+            mr.time_near_wall = 0;         
         end
-         mr.LSL.MaxMSP.send_hand_proximity(valueToSend, angleForInRoom, 'wallSound');
+    else % near to the wall, possibly in it, do stuff!
+        mr.was_near_wall = 1; % set next state to 'was near wall'
+        mr.time_near_wall = mr.time_near_wall + time_diff; % accumulate time near wall
+        
+        if isInWall % flag as to whether or not we are in the wall
+            valueToSendHand = 0;
+        end
+        
+        mr.LSL.MaxMSP.send_hand_proximity(valueToSendHand, angleForInRoomHand, 'wallSound');
          
-
+        if 1-valueToSend >=mr.in_wall_prox % wall alarm is sounding
+            mr.was_in_wall = 1; % set next state to 'was in wall'
+            mr.time_in_wall = mr.time_in_wall + mr.time_in_wall + time_diff; % accumulate time in wall              
+        elseif mr.was_in_wall == 1 % we are out but we were in on the last tick
+            % TODO?: send event showing the time in wall?
+            mr.was_in_wall = 0;
+            mr.total_time_in_wall = mr.total_time_in_wall + mr.time_in_wall;
+            mr.time_in_wall = 0;
+        end
+           
     end;
     
+    % TODO: code for rewarding/punishing subjects for being near/in the
+    % wall goes here. I suggest giving them a fixed number of points at the
+    % beginning and using this measure to deduct points. 
+    
+    % for now just send the head distance and create a warning if the head
+    % is in the wall
+    headwallVal = 999;
+    proximityThresholdForHeadInWall = .1;
+%      closestDistanceHead
+    if closestDistanceHead < proximityThresholdForHeadInWall
+        headwallVal = (closestDistanceHead/proximityThresholdForHeadInWall)^1;
+    end;
+%     headwallVal
+    mr.LSL.MaxMSP.send_headwall(headwallVal, 'foo');
+
+        
     if nearWallAccumulator > 40 %warn after 2 seconds within wall...
         nearWallAccumulator = 0; % restart the accumulator after 'too long near wall' warning
-        mr.LSL.MaxMSP.play_sound(1, 1, 0, angleForInRoom, 110, 'tooLongByWallSound');
+        mr.LSL.MaxMSP.play_sound(1, 1, 0, angleForInRoomHand, 110, 'tooLongByWallSound');
 
     end;
     lastArmCentroid = armCentroid;
