@@ -329,8 +329,8 @@ classdef audioMaze      % audio maze object
             if EW==1 % if we didn't get the correct yet wall, it must be 'east' or 'west'
                 if vec(1)>0 % test the 'east' wall
                     if horiz == 1
-                        audioProjection(2) = headPoint(2)
-                        audioProjection(1) = obj.roomWalls(3,1)
+                        audioProjection(2) = headPoint(2);
+                        audioProjection(1) = obj.roomWalls(3,1);
                     else
 
                         audioProjection(2) = m*obj.roomWalls(3,1) + b;

@@ -53,10 +53,30 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     
     mr.overheads = [0,0]; % test, center of room
     mr.n_overheads = 1;
-    mr.inTokenTol = .2; % 1/10m
-    mr.outTokenTol = .5; % you must get this far away until you can replay
+    mr.inTokenTol = .1; % 1/10m
+    mr.outTokenTol = 1.5; % you must get this far away until you can replay
     delete(timerfindall);
+    
+    % variables for keeping track of wall touch stats in real-time
+    mr.was_near_wall = 0;
+    mr.time_near_wall = 0;
+    mr.total_time_near_wall = 0;
+    mr.was_in_wall = 0;
+    mr.time_in_wall = 0;
+    mr.total_time_in_wall = 0;
 
+    mr.time_was = 0;
+    
+    mr.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
+
+    % determine the 'in wall' proximity threshold according to how max/msp
+    % understands it (midi units, 0-127)
+    % the proximity here is 0-1 (once we cross the near wall threshold) so
+    % we need to map MAX/msp's notion of in the wall to the audiomaze
+    % engine's notion
+    MAX_wall_prox_thresh = 110; % got this from the MAX patch
+    mr.in_wall_prox = MAX_wall_prox_thresh/127; 
+    
     %makoto mr_init_writing('/tmp/AudioSuite', 10, 20); 
 
     mr.numberOfFramesInAccumulatedData = 0;
@@ -104,6 +124,8 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     if isfield(mr,'LSL'), mr = rmfield(mr,'LSL'); end
     mr.LSL.lib = lsl_loadlib();
 
+    % while we are at it, initiallize the current clock time
+    mr.time_was = lsl_local_clock(mr.LSL.lib);
     %init outlets to MAX
     disp('Initializing LSL outputs to MAX/MSP')
     
@@ -116,8 +138,11 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     mr.LSL.MaxMSP.streamInfo(3) = lsl_streaminfo(mr.LSL.lib,'noisepitch','AudioControl',2,0,'cf_string','noisepitch_AudioControl');
     mr.LSL.MaxMSP.outlet(3) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(3));
    
-    mr.LSL.MaxMSP.streamInfo(4) = lsl_streaminfo(mr.LSL.lib,'overhead','AudioControl',2,0,'cf_string','overhead_AudioControl');
+    mr.LSL.MaxMSP.streamInfo(4) = lsl_streaminfo(mr.LSL.lib,'overhead','AudioControl',3,0,'cf_string','overhead_AudioControl');
     mr.LSL.MaxMSP.outlet(4) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(4));
+    
+    mr.LSL.MaxMSP.streamInfo(5) = lsl_streaminfo(mr.LSL.lib,'headwall','AudioControl',2,0,'cf_string','headwall_AudioControl');
+    mr.LSL.MaxMSP.outlet(5) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(5));
     % functions to play a beacon sound, or wall-proximity sound
     % using previous convention of first 6 values being commands to play beacon
     % sounds from a given azimuth. To control wall proximity sounds, the azimuth, scaled
@@ -135,8 +160,10 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
         mr.LSL.MaxMSP.outlet(2).push_sample({num2str(proximityDistance), num2str(proximityAzimuth), proximityEventCode});
     mr.LSL.MaxMSP.send_noise_freq = @(pitch, fooEventCode) ...
         mr.LSL.MaxMSP.outlet(3).push_sample({num2str(pitch), fooEventCode});
-    mr.LSL.MaxMSP.send_overhead = @(which, what) ...
-        mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), num2str(what)});
+    mr.LSL.MaxMSP.send_overhead = @(which, what, eventcode) ...
+        mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), num2str(what), eventcode});
+    mr.LSL.MaxMSP.send_headwall = @(which, eventcode) ...
+        mr.LSL.MaxMSP.outlet(5).push_sample({num2str(which), eventcode});
 
     %% init input from phasespace
     streaminfo = {};

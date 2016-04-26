@@ -1,5 +1,5 @@
 %% notes
-% token orientation is messed up
+% token orientation is messed up -- fixed: path problem in max patch
 %% startup the maze
 % run this after setting up phasespace, lsl, and sound engine
 clear('mr');
@@ -12,7 +12,7 @@ addpath(strcat(current_dir,'\vr'));
 n_rows = 5;
 n_cols = 5;
 % room dimensions
-w = 6.5;
+w = 6;
 h = 6.5;
 
 % make a randomly seeded maze:
@@ -43,7 +43,9 @@ mr.tokens = mazeTokens(mr.am, speakerLocs, tokenMap);
 
 % mr.tokens.wired
 % mr.tokens.active
-% mr.tokens.active(3) = 1
+for n=1:6
+    mr.tokens.active(n) = n
+end
 % mr.tokens.active
 
 %% main loop
@@ -53,6 +55,7 @@ maze_main_loop;
 
 stop_maze;
 pause(2);
+
 clear all;
 
 %% step through
