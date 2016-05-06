@@ -51,6 +51,11 @@ if mr.numberOfFramesInAccumulatedData > 0
         mr_show_mocap_markers(xs, ys, zs, zOffset, 'label','off', 'markerSize', 0.1);
     end
     
+    % get finger tips only
+    currentHandMarkers = mr.mocap.markers.rightHand(1:4);
+    currentHandMarkers = [currentHandMarkers, mr.mocap.markers.rightHand(6)];
+ 
+    
     if mr.mocap.doSimplePlot,
         %figure(11)
         h=findobj(gcf,'tag','markers');
@@ -61,7 +66,8 @@ if mr.numberOfFramesInAccumulatedData > 0
         ytmp(bad)=nan;
         xtmp(bad)=nan;
         plot(-ytmp(mr.mocap.markers.head),xtmp(mr.mocap.markers.head),'.','tag','markers','markersize',20)
-        plot(-ytmp(mr.mocap.markers.rightHand),xtmp(mr.mocap.markers.rightHand),'r.','tag','markers','markersize',20)
+        plot(-ytmp(currentHandMarkers),xtmp(currentHandMarkers),'r.','tag','markers','markersize',20)
+        %plot(-ytmp(mr.mocap.markers.rightHand),xtmp(mr.mocap.markers.rightHand),'r.','tag','markers','markersize',20)
         plot(mr.tokens.mocapLocs(:,1),mr.tokens.mocapLocs(:,2),'g.','tag','markers','markersize',20)
 
         

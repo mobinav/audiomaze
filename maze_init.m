@@ -64,6 +64,9 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     mr.was_in_wall = 0;
     mr.time_in_wall = 0;
     mr.total_time_in_wall = 0;
+    
+    mr.in_wall_cnt = 0;
+    mr.near_wall_cnt = 0; % counters for wall touches
 
     mr.time_was = 0;
     
@@ -76,6 +79,11 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     % engine's notion
     MAX_wall_prox_thresh = 110; % got this from the MAX patch
     mr.in_wall_prox = MAX_wall_prox_thresh/127; 
+
+    % buoy playback control
+    mr.buoy_time_accum = 0;
+    mr.buoy_time_thresh = [10 20]; % time in the cycle to sound beacon
+    mr.buoy_trig = [1 1]; % trigger the sound on or off
     
     %makoto mr_init_writing('/tmp/AudioSuite', 10, 20); 
 
@@ -85,7 +93,7 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     mr.mocap.firstChannel = 1; % first channel is events or should be ignored
     mr.mocap.lastChannel = nan; % use nan to make it until the last one that exist
 
-     mr.mocap.doSimplePlot = true;
+    mr.mocap.doSimplePlot = true;
 
      
     %% make the maze
@@ -141,8 +149,11 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     mr.LSL.MaxMSP.streamInfo(4) = lsl_streaminfo(mr.LSL.lib,'overhead','AudioControl',3,0,'cf_string','overhead_AudioControl');
     mr.LSL.MaxMSP.outlet(4) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(4));
     
-    mr.LSL.MaxMSP.streamInfo(5) = lsl_streaminfo(mr.LSL.lib,'headwall','AudioControl',2,0,'cf_string','headwall_AudioControl');
+    mr.LSL.MaxMSP.streamInfo(5) = lsl_streaminfo(mr.LSL.lib,'headwall','AudioControl',3,0,'cf_string','headwall_AudioControl');
     mr.LSL.MaxMSP.outlet(5) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(5));
+    
+    mr.LSL.MaxMSP.streamInfo(6) = lsl_streaminfo(mr.LSL.lib,'buoys','AudioControl',2,0,'cf_string','buoy_AudioControl');
+    mr.LSL.MaxMSP.outlet(6) = lsl_outlet(mr.LSL.MaxMSP.streamInfo(6));
     % functions to play a beacon sound, or wall-proximity sound
     % using previous convention of first 6 values being commands to play beacon
     % sounds from a given azimuth. To control wall proximity sounds, the azimuth, scaled
@@ -162,8 +173,10 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
         mr.LSL.MaxMSP.outlet(3).push_sample({num2str(pitch), fooEventCode});
     mr.LSL.MaxMSP.send_overhead = @(which, what, eventcode) ...
         mr.LSL.MaxMSP.outlet(4).push_sample({num2str(which), num2str(what), eventcode});
-    mr.LSL.MaxMSP.send_headwall = @(which, eventcode) ...
-        mr.LSL.MaxMSP.outlet(5).push_sample({num2str(which), eventcode});
+    mr.LSL.MaxMSP.send_headwall = @(proximityDistanceHead, proximityAzimuthHead, proximityEventCodeHead) ...
+        mr.LSL.MaxMSP.outlet(5).push_sample({num2str(proximityDistanceHead), num2str(proximityAzimuthHead), proximityEventCodeHead});
+      mr.LSL.MaxMSP.play_buoy = @(buoyCode, buoyEventCode) ...
+        mr.LSL.MaxMSP.outlet(6).push_sample({num2str(buoyCode), buoyEventCode});
 
     %% init input from phasespace
     streaminfo = {};

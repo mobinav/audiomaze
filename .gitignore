@@ -3,3 +3,7 @@ vr_files
 vr_file\*
 *.wrl
 *.asv
+max\soundfiles\*
+*.wav
+*.aiff
+max/old/*

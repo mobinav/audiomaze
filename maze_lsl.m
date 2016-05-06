@@ -9,7 +9,7 @@ function mr_maze_lsl
 %necessary
 global mr;
 
-persistent wallProjectionLocation audioLocation nearWallAccumulator homingSoundTurnedOn
+persistent wallProjectionLocation audioLocation nearWallAccumulator homingSoundTurnedOn 
 noHeadCount=0;
 lastHeadMarkerPosition = [0 0 0];
 closestWallPointHand = [0 0];
@@ -69,10 +69,10 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
 
     % 11/13/2015 DEM
     % using lastHandMarkers to fill in 'bad' markers
-    currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand,:); % all hand
+%     currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand,:); % all hand
     % just fingertips
-     %currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand(1:4),:);  
-     %currentHandMarkers = [currentHandMarkers;mr.mocap.markerPosition(mr.mocap.markers.rightHand(6),:)];
+     currentHandMarkers = mr.mocap.markerPosition(mr.mocap.markers.rightHand(1:4),:);  
+     currentHandMarkers = [currentHandMarkers;mr.mocap.markerPosition(mr.mocap.markers.rightHand(6),:)];
      
     for n=1:length(currentHandMarkers)
         if currentHandMarkers(n, 1:2) == [0 0]
@@ -162,7 +162,11 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
             
             dist = pdist([mr.tokens.mocapLocs(n,:); headMarkerPosition([1 2])], 'euclidean'); % get the distance
             if(n==1) 
-                title(['head ' num2str(headMarkerPosition(1)) ' ' num2str(headMarkerPosition(2)) ' token ' num2str(mr.tokens.mocapLocs(n,1)) ' ' num2str(mr.tokens.mocapLocs(n,2)) ' dist' num2str(dist) 'm'])
+%                 title(['head ' num2str(headMarkerPosition(1)) ' ' num2str(headMarkerPosition(2)) ' token ' num2str(mr.tokens.mocapLocs(n,1)) ' ' num2str(mr.tokens.mocapLocs(n,2)) ' dist' num2str(dist) 'm'])
+                title(['time in wall ' num2str(mr.total_time_in_wall) ' time near wall ' num2str(mr.total_time_near_wall)])
+%                 mr.total_time_in_wall
+%                 mr.total_time_near_wall
+
             end
             if mr.tokens.active(n) == 0 % it is wired, but not active
                 if dist>mr.outTokenTol % check to see if we are far enough to reactivate
@@ -196,7 +200,7 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     end
     
     % find the nearest wall and the nearest point on that wall to the
-    % hand
+    % hand and the head
     [nearestPoints, distances] = mr.am.findNearestPoints((mr.mocap.markerPosition(mr.mocap.markers.head,:)));
     closestDistanceHead = min(distances(:));
     [closestWallIdHead closestMarkerIdHead] = find(distances == closestDistanceHead);
@@ -258,7 +262,10 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     %figure(11);
     h=findobj(gcf,'tag','audio_point');
     delete(h)
-    plot(projectedAudioPointHand(1), projectedAudioPointHand(2),'go', 'tag','audio_point', 'markersize',30);
+    plot(projectedAudioPointHand(1), projectedAudioPointHand(2),'ro', 'tag','audio_point', 'markersize',30, 'linewidth', 3);
+    plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',30, 'linewidth', 3);
+    
+    
     angleForInRoomHand = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
     angleForInRoomHead = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2))); 
     
@@ -327,8 +334,10 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     % routine for keeping track of time passed
     time_is = lsl_local_clock(mr.LSL.lib);
     time_diff =  time_is - mr.time_was;
+%     time_diff
     mr.time_was = time_is;
-    
+%     valueToSendHand
+%     angleForInRoomHand
     if valueToSendHand == 999 % not near enough to the wall
         mr.LSL.MaxMSP.send_hand_proximity(valueToSendHand, angleForInRoomHand, '');
         if mr.was_near_wall == 1
@@ -339,6 +348,9 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
             mr.time_near_wall = 0;         
         end
     else % near to the wall, possibly in it, do stuff!
+        if mr.was_near_wall == 0
+            mr.near_wall_cnt = mr.near_wall_cnt+1;
+        end
         mr.was_near_wall = 1; % set next state to 'was near wall'
         mr.time_near_wall = mr.time_near_wall + time_diff; % accumulate time near wall
         
@@ -348,9 +360,12 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
         
         mr.LSL.MaxMSP.send_hand_proximity(valueToSendHand, angleForInRoomHand, 'wallSound');
          
-        if 1-valueToSend >=mr.in_wall_prox % wall alarm is sounding
+        if 1-valueToSendHand >=mr.in_wall_prox % wall alarm is sounding
+            if mr.was_in_wall == 0 % first frame in wall this time, increase the wall touch counter
+                mr.in_wall_cnt = mr.in_wall_cnt+1;
+            end
             mr.was_in_wall = 1; % set next state to 'was in wall'
-            mr.time_in_wall = mr.time_in_wall + mr.time_in_wall + time_diff; % accumulate time in wall              
+            mr.time_in_wall = mr.time_in_wall + time_diff; % accumulate time in wall              
         elseif mr.was_in_wall == 1 % we are out but we were in on the last tick
             % TODO?: send event showing the time in wall?
             mr.was_in_wall = 0;
@@ -367,14 +382,30 @@ if mr.numberOfFramesInAccumulatedData > 5 %only run if we have at least four fra
     % for now just send the head distance and create a warning if the head
     % is in the wall
     headwallVal = 999;
-    proximityThresholdForHeadInWall = .1;
+    proximityThresholdForHeadInWall = .3;
 %      closestDistanceHead
     if closestDistanceHead < proximityThresholdForHeadInWall
         headwallVal = (closestDistanceHead/proximityThresholdForHeadInWall)^1;
     end;
 %     headwallVal
-    mr.LSL.MaxMSP.send_headwall(headwallVal, 'foo');
+%     angleForInRoomHead
+    mr.LSL.MaxMSP.send_headwall(headwallVal, angleForInRoomHead,'wallSound');
 
+    % buoy playback control logic
+    mr.buoy_time_accum = mr.buoy_time_accum + time_diff;
+    if mr.buoy_time_accum > mr.buoy_time_thresh(1) && mr.buoy_trig(1) == 1 %time to play the first buoy
+        code = 0;
+        mr.LSL.MaxMSP.play_buoy(code, 'foo'); % play it
+        mr.buoy_trig(1) = 0; % turn it off
+    end
+    
+    if mr.buoy_time_accum > mr.buoy_time_thresh(2) %time to play the first buoy
+        code = 1;
+        mr.LSL.MaxMSP.play_buoy(code, 'foo'); % play the other one
+        mr.buoy_time_accum = 0; % restart the counter
+        mr.buoy_trig(1) = 1; % retrigger the other buoy
+        
+    end
         
     if nearWallAccumulator > 40 %warn after 2 seconds within wall...
         nearWallAccumulator = 0; % restart the accumulator after 'too long near wall' warning

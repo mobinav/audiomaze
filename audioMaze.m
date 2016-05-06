@@ -297,7 +297,7 @@ classdef audioMaze      % audio maze object
             if vec(2)>0 % pointing right, test the 'North' wall
                 if vert == 1
                     audioProjection(1) = headPoint(1);
-                    audioProjection(2) = obj.roomWalls(1,3);
+                    audioProjection(2) = obj.roomWalls(3,1);
                 else
                     audioProjection(1) = (obj.roomWalls(1,3)-b)/m;
                     % check if the y position is in the line segment
@@ -305,14 +305,14 @@ classdef audioMaze      % audio maze object
                     if audioProjection(1)>obj.roomWalls(1,2) || audioProjection(1)<obj.roomWalls(1,1)
                         EW = 1;
                     else % otherwise, we are done
-                        audioProjection(2) = obj.roomWalls(1,3);
+                        audioProjection(2) = obj.roomWalls(3,1);
                         EW = 0;
                     end
                 end
             else % test 'South' wall
                 if vert == 1
                     audioProjection(1) = headPoint(1);
-                    audioProjection(2) = obj.roomWalls(2,3);
+                    audioProjection(2) = obj.roomWalls(4,2);
                 else
                     audioProjection(1) = (obj.roomWalls(2,3)-b)/m;
                     % check if the y position is in the line segment
@@ -320,7 +320,7 @@ classdef audioMaze      % audio maze object
                     if audioProjection(1)>obj.roomWalls(2,2) || audioProjection(1)<obj.roomWalls(2,1)
                         EW = 1;
                     else % otherwise, we are done
-                        audioProjection(2) = obj.roomWalls(2,3);
+                        audioProjection(2) = obj.roomWalls(4,2);
                         EW = 0;
                     end
                 end
@@ -330,7 +330,7 @@ classdef audioMaze      % audio maze object
                 if vec(1)>0 % test the 'east' wall
                     if horiz == 1
                         audioProjection(2) = headPoint(2);
-                        audioProjection(1) = obj.roomWalls(3,1);
+                        audioProjection(1) = obj.roomWalls(1,3);
                     else
 
                         audioProjection(2) = m*obj.roomWalls(3,1) + b;
@@ -338,20 +338,20 @@ classdef audioMaze      % audio maze object
                         % if not, we have more work to do
                         if audioProjection(2)>obj.roomWalls(3,4) || audioProjection(2)<obj.roomWalls(3,3) % should always be false...
                         else % otherwise, we are done
-                            audioProjection(1) = obj.roomWalls(3,1);
+                            audioProjection(1) = obj.roomWalls(1,3);
                         end
                     end
                 else % test the 'west' wall
                     if horiz == 1
                         audioProjection(2) = headPoint(2);
-                        audioProjection(1) = obj.roomWalls(4,1);
+                        audioProjection(1) = obj.roomWalls(2,4);
                     else
                         audioProjection(2) = m*obj.roomWalls(4,1) + b;
                         % check if the y position is in the line segment
                         % if not, we have more work to do
                         if audioProjection(2)>obj.roomWalls(4,4) || audioProjection(2)<obj.roomWalls(4,3)
                         else % otherwise, we are done
-                            audioProjection(1) = obj.roomWalls(4,1);
+                            audioProjection(1) = obj.roomWalls(2,4);
                         end
                     end
                 end    

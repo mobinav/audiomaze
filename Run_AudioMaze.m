@@ -50,12 +50,10 @@ end
 
 %% main loop
 maze_main_loop;
-
-%% stop maze
-
+    
+%% stop and clear maze
 stop_maze;
 pause(2);
-
 clear all;
 
 %% step through
