@@ -17,9 +17,10 @@ h = 6.5;
 
 % make a randomly seeded maze:
 random_seed = 12;
-[~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', .05, random_seed)
+[~, mz_lnsr] = make_maze_polygons(n_rows, n_cols, 'S', .05, random_seed);
+mz_lns = importdata('./mazes/single_corridor.mat');
 
-
+%%
 % make a prescribed maze (see testMazeBuilder for details)
 % maze_c = [0,1; 1,0; 0,0; 0,0; 1,1; 0,0; 0,0; 0,0; 0,0];
 % [mz_poly, mz_lns] = make_maze_polygons_nr(n_rows, n_cols,0, maze_c(:,1), maze_c(:,2));
@@ -44,7 +45,7 @@ mr.tokens = mazeTokens(mr.am, speakerLocs, tokenMap);
 % mr.tokens.wired
 % mr.tokens.active
 for n=1:6
-    mr.tokens.active(n) = n
+    mr.tokens.active(n) = n;
 end
 % mr.tokens.active
 
