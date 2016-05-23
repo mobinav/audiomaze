@@ -28,7 +28,6 @@ for n=13:20
         'linewidth', 2);
     text(speaker_locs(n,1)-.4, speaker_locs(n,2)-.2, sprintf('%d',n), 'fontsize', 14);
 end
-xlabel(
 text(-w/2,-h/2+.5 , 'door', 'fontsize', 14);
 %set(gca, 'XDir', 'reverse');
 set(gca, 'YDir', 'reverse');
