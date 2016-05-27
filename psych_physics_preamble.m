@@ -66,5 +66,9 @@ for m=1:8
     end    
 end
 
+%%
+clear all
+
+
 
     

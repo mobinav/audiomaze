@@ -19,7 +19,7 @@ classdef audioMaze      % audio maze object
         nearestPoints   % list of current nearest points
         %mz_lns          % tmp local variable for debugging
         mz_plygns       % "
-       
+        fig_handle      % figure handle for the plotting function
     end
     
     methods
@@ -49,11 +49,12 @@ classdef audioMaze      % audio maze object
             obj.roomDims = [rm_height rm_width];
             obj.mbyn = [n_rows, n_cols];
             
-            obj.mazeWalls(:,1:2) = obj.mazeWallsNrm(:,1:2) * obj.roomDims(2);
+            obj.mazeWalls(:,1:2) = -obj.mazeWallsNrm(:,1:2) * obj.roomDims(2);
             obj.mazeWalls(:,3:4) = obj.mazeWallsNrm(:,3:4) * obj.roomDims(1);
   
             % find which walls neighbor which others, one to many
             obj.hasNeighbors = {};
+            obj.fig_handle = figure(11);
             
             % the first four are always connected thus:
 %             obj.hasNeighbors{1} = 4;
@@ -105,11 +106,7 @@ classdef audioMaze      % audio maze object
             for n=5:length(obj.mazeWalls)
                 cnt = length(obj.hasNeighbors{n})+1;
                 for m=1:4 % the first 4 are always the outer walls, right?
-%                     if isOnWall(obj.mazeWalls(n,1:2:3), obj.mazeWalls(m,1:2:3), obj.mazeWalls(m,2:2:4)) | ...
-%                             isOnWall(obj.mazeWalls(n,2:2:4), obj.mazeWalls(m,1:2:3), obj.mazeWalls(m,2:2:4)) 
-%                         obj.hasNeighbors{n}(cnt) = m;
-%                         obj.hasNeighbors{m}(length(obj.hasNeighbors{m}) +1) = n;
-%                         cnt = cnt+1;
+
                     if isOnWall(obj.mazeWalls(n,1:2:3), obj.mazeWalls(m,1:2:3), obj.mazeWalls(m,2:2:4))   
                         obj.hasNeighbors{n}(cnt) = m;
                         obj.hasNeighbors{m}(length(obj.hasNeighbors{m}) +1) = n;
@@ -208,10 +205,12 @@ classdef audioMaze      % audio maze object
 %            figure(11);clf; 
     % todo : fudge wall lengths to line up boundaries (hurray! MATLAB
     % graphics)
+            
             for i=1:length(obj.mazeWalls(:,1))
                 line(obj.mazeWalls(i,1:2), obj.mazeWalls(i,3:4), 'linewidth', 10, 'color',[.7 .7 1]);
 %                 pause(.5);
             end
+            set(gca, 'YDir', 'reverse');
             pause(1)
 
                                

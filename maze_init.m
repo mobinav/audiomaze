@@ -5,7 +5,7 @@
 % make_maze_polygons (for a random maze) or make_maze_polygons_nr (for a
 % predetermined maze)
 
-function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
+function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
 
 
     if nargin < 4
@@ -18,14 +18,14 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     
     %clear mr;
     %global mr;
-    mr = [];
-    mr.readFromLSL = true; % ***
-    mr.functionHandle = [];
-    mr.samplingRate  = 512;%512;
-    mr.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
+    X = [];
+    X.readFromLSL = true; % ***
+    X.functionHandle = [];
+    X.samplingRate  = 512;%512;
+    X.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
     
-    mr.h = h;
-    mr.w = w;
+    X.h = h;
+    X.w = w;
     
     % note: added 11/13/15 DEM
     % mechanism for dealing with emitter drop errors
@@ -33,44 +33,44 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     % with these values
 
     %global lastHandMarkers;
-    mr.lastHandMarkers = zeros(8,3);
+    X.lastHandMarkers = zeros(8,3);
 
     % mr_init;
     % from the script above:
     maxChannels = 100;
     initialLength = 10000;
-    mr.verboseLevel = 1; % 0 is no verbosity, 1 for medium and 2 is for max
-    mr.accumulatedData = nan(maxChannels, initialLength);
-    mr.numberOfChannelsInAccumulatedData = nan;
-    mr.numberOfFramesInAccumulatedData = 0;
-    mr.numberOfFramesReceived = 0;
-    mr.event = [];
-    mr.eventChannelNumber = nan; % when reading from datariver, event channel is not represented as a separate channel, but as the .event field of incoming samples.
-    mr.eeg.channelOffset = 0;
+    X.verboseLevel = 1; % 0 is no verbosity, 1 for medium and 2 is for max
+    X.accumulatedData = nan(maxChannels, initialLength);
+    X.numberOfChannelsInAccumulatedData = nan;
+    X.numberOfFramesInAccumulatedData = 0;
+    X.numberOfFramesReceived = 0;
+    X.event = [];
+    X.eventChannelNumber = nan; % when reading from datariver, event channel is not represented as a separate channel, but as the .event field of incoming samples.
+    X.eeg.channelOffset = 0;
 
-    mr.doVrPlot = doVrPlot;
+    X.doVrPlot = doVrPlot;
 
     
-    mr.overheads = [0,0]; % test, center of room
-    mr.n_overheads = 1;
-    mr.inTokenTol = .1; % 1/10m
-    mr.outTokenTol = 1.5; % you must get this far away until you can replay
+    X.overheads = [0,0]; % test, center of room
+    X.n_overheads = 1;
+    X.inTokenTol = .1; % 1/10m
+    X.outTokenTol = 1.5; % you must get this far away until you can replay
     delete(timerfindall);
     
     % variables for keeping track of wall touch stats in real-time
-    mr.was_near_wall = 0;
-    mr.time_near_wall = 0;
-    mr.total_time_near_wall = 0;
-    mr.was_in_wall = 0;
-    mr.time_in_wall = 0;
-    mr.total_time_in_wall = 0;
+    X.was_near_wall = 0;
+    X.time_near_wall = 0;
+    X.total_time_near_wall = 0;
+    X.was_in_wall = 0;
+    X.time_in_wall = 0;
+    X.total_time_in_wall = 0;
     
-    mr.in_wall_cnt = 0;
-    mr.near_wall_cnt = 0; % counters for wall touches
+    X.in_wall_cnt = 0;
+    X.near_wall_cnt = 0; % counters for wall touches
 
-    mr.time_was = 0;
+    X.time_was = 0;
     
-    mr.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
+    X.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
 
     % determine the 'in wall' proximity threshold according to how max/msp
     % understands it (midi units, 0-127)
@@ -78,22 +78,22 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     % we need to map MAX/msp's notion of in the wall to the audiomaze
     % engine's notion
     MAX_wall_prox_thresh = 110; % got this from the MAX patch
-    mr.in_wall_prox = MAX_wall_prox_thresh/127; 
+    X.in_wall_prox = MAX_wall_prox_thresh/127; 
 
     % buoy playback control
-    mr.buoy_time_accum = 0;
-    mr.buoy_time_thresh = [10 20]; % time in the cycle to sound beacon
-    mr.buoy_trig = [1 1]; % trigger the sound on or off
+    X.buoy_time_accum = 0;
+    X.buoy_time_thresh = [10 20]; % time in the cycle to sound beacon
+    X.buoy_trig = [1 1]; % trigger the sound on or off
     
     %makoto mr_init_writing('/tmp/AudioSuite', 10, 20); 
 
-    mr.numberOfFramesInAccumulatedData = 0;
+    X.numberOfFramesInAccumulatedData = 0;
 
     % for mocap, specify mocap channel subset
-    mr.mocap.firstChannel = 1; % first channel is events or should be ignored
-    mr.mocap.lastChannel = nan; % use nan to make it until the last one that exist
+    X.mocap.firstChannel = 1; % first channel is events or should be ignored
+    X.mocap.lastChannel = nan; % use nan to make it until the last one that exist
 
-    mr.mocap.doSimplePlot = true;
+    X.mocap.doSimplePlot = true;
 
      
     %% make the maze
@@ -101,45 +101,45 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
 
     % for the maze
     
-    mr.am = audioMaze(mr.h, mr.w, n_rows, n_cols, maze_lines);
+    X.am = audioMaze(X.h, X.w, n_rows, n_cols, maze_lines);
 
-    figure(11);
-    mr.am.plotMaze();
+    %figure(11);
+    X.am.plotMaze();
     hold on;
     
     
     %% vr world stuff
 
-    if mr.doVrPlot == true;
-        if isfield(mr, 'mocap') && isfield(mr.mocap, 'mocapWorld') && ~isempty(mr.mocap.mocapWorld)
-            close(mr.mocap.mocapWorld);
-            delete(mr.mocap.mocapWorld);
+    if X.doVrPlot == true;
+        if isfield(X, 'mocap') && isfield(X.mocap, 'mocapWorld') && ~isempty(X.mocap.mocapWorld)
+            close(X.mocap.mocapWorld);
+            delete(X.mocap.mocapWorld);
         end;
         cur_dir = pwd;
         vr_path = strcat(cur_dir,'\vr\minimal_with_axis_captions');
         mocapWorld = vrworld(vr_path, 'new');
         open(mocapWorld);
 
-        mr.mocap.mocapWorld = mocapWorld;
-        mr.mocap.roomWallCollection = vr_draw_maze(mr.mocap.mocapWorld, mr.am); 
+        X.mocap.mocapWorld = mocapWorld;
+        X.mocap.roomWallCollection = vr_draw_maze(X.mocap.mocapWorld, X.am); 
         
-        figureHandle = view(mr.mocap.mocapWorld);
+        figureHandle = view(X.mocap.mocapWorld);
         vrdrawnow;
    end
 
     %% initialize LSL, connect to MaxMSP (via patch lslreceive)
-    maze_init_audio_engine(); % this function sets up all the LSL objects to send events to the audio engine
+    X = maze_init_audio_engine(X); % this function sets up all the LSL objects to send events to the audio engine
 
     %% init input from phasespace
     streaminfo = {};
     disp('Waiting for Mocap stream...')
     while isempty(streaminfo),
-        streaminfo = lsl_resolve_byprop(mr.LSL.lib,'type','Mocap',1); % look for mocap device
+        streaminfo = lsl_resolve_byprop(X.LSL.lib,'type','Mocap',1); % look for mocap device
         drawnow
     end
     disp('Found Mocap Stream')
-    mr.LSL.phasespace.streamInfo = streaminfo{1};
-    mr.LSL.phasespace.inlet = lsl_inlet(mr.LSL.phasespace.streamInfo);
+    X.LSL.phasespace.streamInfo = streaminfo{1};
+    X.LSL.phasespace.inlet = lsl_inlet(X.LSL.phasespace.streamInfo);
 
     %% set up marker indexes
     %sensor numbers will depend on the phasespace profile used
@@ -162,10 +162,10 @@ function mr = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     %%
 
     % "4 gloves, 2 heads (dev)" configureation
-    mr.mocap.markers.phasespaceConfiguration = '4 gloves, 2 heads (dev)';
-    mr.mocap.markers.head = 1:4;
-    mr.mocap.markers.rightHand = 5:12;
-    mr.mocap.markers.leftHand = 13:20;
+    X.mocap.markers.phasespaceConfiguration = '4 gloves, 2 heads (dev)';
+    X.mocap.markers.head = 1:4;
+    X.mocap.markers.rightHand = 5:12;
+    X.mocap.markers.leftHand = 13:20;
 
 
 end

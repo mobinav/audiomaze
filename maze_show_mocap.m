@@ -1,20 +1,20 @@
-function mr_show_mocap
+function X =  mr_show_mocap(X)
 % mr_show_mocap processes last sample of mr.accumulatedData into
 % mr.mocap.markerPosition
 %   then plot mocap points on maze 
 %`  (two plot versions: vr version is slow, so can use simple
 %   matlab plot. Settings in mr_maze_with_lsl)
 %
-global mr
+%global mr
 
-if mr.numberOfFramesInAccumulatedData > 0
-    if isnan(mr.mocap.lastChannel) % nan for lastChannel means that all channels after firstChannel are mocap, this is useful for when the actual number is not know a priori
-        mocapChannels = mr.mocap.firstChannel : mr.numberOfChannelsInAccumulatedData;
+if X.numberOfFramesInAccumulatedData > 0
+    if isnan(X.mocap.lastChannel) % nan for lastChannel means that all channels after firstChannel are mocap, this is useful for when the actual number is not know a priori
+        mocapChannels = X.mocap.firstChannel : X.numberOfChannelsInAccumulatedData;
     else
-        mocapChannels = mr.mocap.firstChannel : mr.mocap.lastChannel;
+        mocapChannels = X.mocap.firstChannel : X.mocap.lastChannel;
     end;
     
-    data = mr.accumulatedData(mocapChannels, mr.numberOfFramesInAccumulatedData);
+    data = X.accumulatedData(mocapChannels, X.numberOfFramesInAccumulatedData);
     channelOffset = 0;
     
     maxChan = channelOffset + floor((length(data) - channelOffset)/3) * 3;
@@ -47,16 +47,16 @@ if mr.numberOfFramesInAccumulatedData > 0
     zs(invalidChannelId) = -100;
     
     zOffset = 0;
-    if mr.doVrPlot,
+    if X.doVrPlot,
         mr_show_mocap_markers(xs, ys, zs, zOffset, 'label','off', 'markerSize', 0.1);
     end
     
     % get finger tips only
-    currentHandMarkers = mr.mocap.markers.rightHand(1:4);
-    currentHandMarkers = [currentHandMarkers, mr.mocap.markers.rightHand(6)];
+    currentHandMarkers = X.mocap.markers.rightHand(1:4);
+    currentHandMarkers = [currentHandMarkers, X.mocap.markers.rightHand(6)];
  
     
-    if mr.mocap.doSimplePlot,
+    if X.mocap.doSimplePlot,
         %figure(11)
         h=findobj(gcf,'tag','markers');
         delete(h)
@@ -65,16 +65,16 @@ if mr.numberOfFramesInAccumulatedData > 0
         bad = abs(ytmp)<0.001 & abs(xtmp)<0.001;
         ytmp(bad)=nan;
         xtmp(bad)=nan;
-        plot(-ytmp(mr.mocap.markers.head),xtmp(mr.mocap.markers.head),'.','tag','markers','markersize',20)
-        plot(-ytmp(currentHandMarkers),xtmp(currentHandMarkers),'r.','tag','markers','markersize',20)
+        plot(ytmp(X.mocap.markers.head),xtmp(X.mocap.markers.head),'.','tag','markers','markersize',20)
+        plot(ytmp(currentHandMarkers),xtmp(currentHandMarkers),'r.','tag','markers','markersize',20)
         %plot(-ytmp(mr.mocap.markers.rightHand),xtmp(mr.mocap.markers.rightHand),'r.','tag','markers','markersize',20)
-        plot(mr.tokens.mocapLocs(:,1),mr.tokens.mocapLocs(:,2),'g.','tag','markers','markersize',20)
-
+        plot(X.tokens.mocapLocs(:,1),X.tokens.mocapLocs(:,2),'g.','tag','markers','markersize',20)
+        plot(X.tokens.endpoints(:,1),X.tokens.endpoints(:,2),'c.','tag','markers','markersize',20)
         
-        set(gca, 'XDir', 'reverse');
+        %set(gca, 'XDir', 'reverse');
         set(gca, 'YDir', 'reverse');
         set(gca, 'YLim', [-4 4]);
         set(gca, 'XLim', [-4 4]);
     end;
-    mr.mocap.markerPosition = [-1*ys, xs, zs];% / 1000; % n x 3, in meters JRI: seems already in meters
+    X.mocap.markerPosition = [1*ys, xs, zs];% / 1000; % n x 3, in meters JRI: seems already in meters
 end;

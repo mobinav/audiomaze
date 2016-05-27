@@ -33,12 +33,9 @@ classdef mazeTokens
             panel_w = maze.roomDims(2)/cols;
             
             
-            % NOTE: the -1 multiply on the 'x-axis' is to conform with
-            % phasespace's notion of the room coordinates
-            % entrance location
-            obj.endpoints(1,:) = [-(maze.roomDims(2)*-.5+panel_w*.5), maze.roomDims(1)*-.5];
+            obj.endpoints(1,:) = [(maze.roomDims(2)*-.5+panel_w*.5), maze.roomDims(1)*-.5];
             % exit location
-            obj.endpoints(2,:) = [-(maze.roomDims(2)*.5 - panel_w*.5), maze.roomDims(1)*.5];
+            obj.endpoints(2,:) = [(maze.roomDims(2)*.5 - panel_w*.5), maze.roomDims(1)*.5];
 
           
             
@@ -47,10 +44,17 @@ classdef mazeTokens
             locs_norm(:,1) = (((locs(:,2)/cols) - 1/cols) - .5)* maze.roomDims(2); 
 
             for n=1:length(locs(:,1))
-                obj.mocapLocs(n,:) = [-locs_norm(n,1) - panel_w*.5, locs_norm(n,2) + panel_h*.5];
+                obj.mocapLocs(n,:) = [locs_norm(n,1) + panel_w*.5, locs_norm(n,2) + panel_h*.5];
                 obj.count = obj.count + 1;
                 obj.wired(n) = 0; % set to disconnected
-            end            
+            end      
+            % add endpoints to wired list
+            
+            for n=length(locs(:,1))+1:length(locs(:,1))+2
+                obj.mocapLocs(n,:) = obj.endpoints(n-length(locs(:,1)),:);
+                obj.count = obj.count + 1;
+                obj.wired(n) = 0; % set to disconnected
+            end  
             obj.active = zeros(size(obj.wired)); % set to innactive
             
   
