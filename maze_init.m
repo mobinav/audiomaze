@@ -53,7 +53,7 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     
     X.overheads = [0,0]; % test, center of room
     X.n_overheads = 1;
-    X.inTokenTol = .1; % 1/10m
+    X.inTokenTol = .45; % 1/3m
     X.outTokenTol = 1.5; % you must get this far away until you can replay
     delete(timerfindall);
     
@@ -67,19 +67,35 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     
     X.in_wall_cnt = 0;
     X.near_wall_cnt = 0; % counters for wall touches
+    
+    X.head_was_near_wall = 0;
+    X.head_time_near_wall = 0;
+    X.total_head_time_near_wall = 0;
+    X.head_was_in_wall = 0;
+    X.time_head_in_wall = 0;
+    X.total_head_time_in_wall = 0;
+    
+    X.head_in_wall_cnt = 0;
+    X.head_near_wall_cnt = 0; % counters for wall touches
+
+    X.time_was = 0;
 
     X.time_was = 0;
     
     X.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
-
+    X.headProximityThresh = .15;
     % determine the 'in wall' proximity threshold according to how max/msp
     % understands it (midi units, 0-127)
     % the proximity here is 0-1 (once we cross the near wall threshold) so
     % we need to map MAX/msp's notion of in the wall to the audiomaze
     % engine's notion
-    MAX_wall_prox_thresh = 110; % got this from the MAX patch
-    X.in_wall_prox = MAX_wall_prox_thresh/127; 
+    MAX_hand_wall_prox_thresh = 90; % got this from the MAX patch
+    X.hand_in_wall_prox = MAX_hand_wall_prox_thresh/127; 
 
+    MAX_head_wall_prox_thresh = 90; % got this from the MAX patch
+    X.head_in_wall_prox = MAX_head_wall_prox_thresh/127; 
+
+    
     % buoy playback control
     X.buoy_time_accum = 0;
     X.buoy_time_thresh = [10 20]; % time in the cycle to sound beacon
@@ -94,7 +110,16 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     X.mocap.lastChannel = nan; % use nan to make it until the last one that exist
 
     X.mocap.doSimplePlot = true;
-
+    
+    X.onePoleArmCentroid = [];    
+    X.lastArmCentroid = [0 0 0];
+    X.lastHeadMarkerPosition = [0 0 0];
+    
+    X.is_in_wall = 0;
+    X.was_in_wall = 0;
+    X.head_crossed = 0;
+    X.hand_crossed = 0;
+    
      
     %% make the maze
 
@@ -164,8 +189,8 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     % "4 gloves, 2 heads (dev)" configureation
     X.mocap.markers.phasespaceConfiguration = '4 gloves, 2 heads (dev)';
     X.mocap.markers.head = 1:4;
-    X.mocap.markers.rightHand = 5:12;
-    X.mocap.markers.leftHand = 13:20;
+    X.mocap.markers.rightHand = 8:15;
+    X.mocap.markers.leftHand = 16:23;
 
 
 end

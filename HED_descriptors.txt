@@ -1,0 +1,32 @@
+-- Subject Interacts with Wall (e.g. touches wall with hand)
+Behavior
+|_NearWall
+  |_Hand
+    |_Centroid
+    |_Count
+    |_Distance (phasespace coords)
+  |_Head
+    ...
+  |_WallLocation
+|_CrossWall
+  ...
+|_UnNearWall
+  ...
+     |_Time
+|_UncrossWall
+
+-- Stimulus and Stimulus Feedback From Maze
+Stimulus
+  |_Auditory
+    |_Buoy
+      |_Which
+  |_Feedback
+    |_Auditory
+      |_WallEvent
+        |_Loudness
+        |_Type (i.e. head sound etc.)
+        |_Location (Azimuth)
+      |_TokenEvent (including endpoints)
+        |_Which
+        |_Location (Phasespace coords)
+

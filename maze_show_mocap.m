@@ -1,4 +1,4 @@
-function X =  mr_show_mocap(X)
+%function X =  mr_show_mocap(X)
 % mr_show_mocap processes last sample of mr.accumulatedData into
 % mr.mocap.markerPosition
 %   then plot mocap points on maze 
@@ -6,7 +6,7 @@ function X =  mr_show_mocap(X)
 %   matlab plot. Settings in mr_maze_with_lsl)
 %
 %global mr
-
+global X;
 if X.numberOfFramesInAccumulatedData > 0
     if isnan(X.mocap.lastChannel) % nan for lastChannel means that all channels after firstChannel are mocap, this is useful for when the actual number is not know a priori
         mocapChannels = X.mocap.firstChannel : X.numberOfChannelsInAccumulatedData;

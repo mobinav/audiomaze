@@ -8,7 +8,7 @@ cd('Z:\audiomaze-2.0')
 current_dir = pwd;
 addpath(current_dir,path);
 addpath(strcat(current_dir,'\vr'));
-
+global X;
 n_rows = 5;
 n_cols = 5;
 % room dimensions
@@ -16,9 +16,11 @@ w = 6;
 h = 6.5;
 
 % make a randomly seeded maze:
-random_seed = 12;
-[~, mz_lnsr] = make_maze_polygons(n_rows, n_cols, 'S', .05, random_seed);
-mz_lns = importdata('./mazes/single_corridor.mat');
+random_seed = 10
+ [~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', 0, random_seed);
+% mz_lns = importdata('./mazes/single_corridor.mat');
+% mz_lns = importdata('./mazes/scott_testmaze.mat');
+% mz_lns = makeSimpleMazeRev('E');
 
 % make a prescribed maze (see testMazeBuilder for details)
 % maze_c = [0,1; 1,0; 0,0; 0,0; 1,1; 0,0; 0,0; 0,0; 0,0];
@@ -43,16 +45,23 @@ X.tokens = mazeTokens(X.am, speakerLocs, tokenMap);
 
 % mr.tokens.wired
 % mr.tokens.active
-for n=1:6
-    X.tokens.active(n) = n;
+for n=1:length(tokenMap)+2
+    X.tokens.active(n) = 1;
 end
 % mr.tokens.active
 
-%% main loop
-X = maze_main_loop(X);  
-    
-%% stop and clear maze
-stop_maze(X);
+%% start/restart maze
+maze_main_loop;    
+
+ %% stop and clear maze
+X=stop_maze(X);
+pause(2);
+close(X.am.fig_handle);
+clear('X');
+
+
+%% stop maze
+X=stop_maze(X);
 pause(2);
 
 %% clear maze
@@ -60,7 +69,8 @@ close(X.am.fig_handle);
 clear('X');
 
 %% step through
-X = maze_accumulate_lsl(X); X = maze_show_mocap(X); X = maze_lsl(X);
+%X = maze_accumulate_lsl(X); X = maze_show_mocap(X); X = maze_lsl(X);
+maze_accumulate_lsl;maze_show_mocap;maze_lsl;
 
-
+    
 

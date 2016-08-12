@@ -1,4 +1,5 @@
-function X = mr_accumulate_lsl (X)
+%function X = mr_accumulate_lsl (X)
+function mr_accumulate_lsl
 % reads real-time (or simulated real-time) data and accumulates it in the mr.accumulatedData field. 
 %To save memory and prevent slowdown due to disk-swapping, the length of data accumulated in mr.accumulatedData can be limited automatically 
 %in this function by setting the mr.maxNumberOfFramesInAccumulatedData field to a finite value. 
@@ -9,6 +10,7 @@ function X = mr_accumulate_lsl (X)
 % mr_show_mocap will format it into mocap markers
 % global mr
 
+global X;
 if ~isfield(X.LSL,'phasespace'), error('phasespace LSL inlet must be initialized. There must have been a problem in mr_maze_with_lsl'), end
 
 maximumDataToReadInEachRun = 2000; % maximum number of frames to be read in each acumulation run
@@ -114,3 +116,5 @@ end
 if isa(X.functionHandle, 'function_handle')
     X.functionHandle();
 end;
+
+end

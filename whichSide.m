@@ -6,7 +6,7 @@
 function [sign] = whichSide(P, A, B)
 
     sign = 1;
-    if (B(1) - A(1))*(P(2) - B(2)) - (B(2) - A(2))* (P(1) - B(1)) <=0
+    if (B(1) - A(1)) * (P(2) - B(2)) - (B(2) - A(2))* (P(1) - B(1)) <=0
         sign = -1;
     end
 end
