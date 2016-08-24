@@ -17,10 +17,10 @@ h = 6.5;
 
 % make a randomly seeded maze:
 random_seed = 10
- [~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', 0, random_seed);
+% [~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', 0, random_seed);
 % mz_lns = importdata('./mazes/single_corridor.mat');
 % mz_lns = importdata('./mazes/scott_testmaze.mat');
-% mz_lns = makeSimpleMazeRev('E');
+mz_lns = makeSimpleMazeRev('E');
 
 % make a prescribed maze (see testMazeBuilder for details)
 % maze_c = [0,1; 1,0; 0,0; 0,0; 1,1; 0,0; 0,0; 0,0; 0,0];
