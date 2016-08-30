@@ -18,7 +18,12 @@ w = 6;
 h = 6.5;
 
 % choose a simple maze to run
-mz_lns = makeSimpleMazeRev('E');
+which_maze = 'E';
+mz_lns = makeSimpleMazeRev(which_maze);
+
+
+% set a token to show the start point endpoint of the maze
+
 
 % initialize the X variable
 % this function does the following
@@ -28,14 +33,38 @@ mz_lns = makeSimpleMazeRev('E');
 % 4. sets up all the LSL outlets
 % 5. sets up the LSL inlet (looks for pahsespace stream) and defines the
 % phasespace markers of interest (head and hand markers)
-X = maze_init(mz_lns, n_rows, n_cols, h, w, false); 
+X = maze_init-2.0(mz_lns, n_rows, n_cols, h, w, false); 
 
+% set the token map to give us the start and end points
+if strcmp(which_maze, 'E')
+   speakerLocs = [1,1; ... % start square
+                  1,4]; % end square
+ 
+end
+% use the tokens (these should be more abstract, but it works ok for now)
+X.tokens = mazeTokens(X.am, speakerLocs, []);
 
 %% start the maze
-simpleTaksMainLoop;
+simpleTaskMainLoop;
 
 %% stop the maze
 X=stop_maze(X);
+
+%% close the velocity file and read it
+if ~isempty(X.velocityFile)
+    fclose(X.velocityFile);
+end
+fId = fopen('velocityFile', 'r');
+formatSpec = '%f';
+vel = fscanf(fId,formatSpec);
+meanVel = mean(vel);
+
+
+%% stop and clear the maze
+X=stop_maze(X);
 pause(2);
 close(X.am.fig_handle);
-clear('X');
+clear all;
+
+%% run once
+simpleTaskCb;

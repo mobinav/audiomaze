@@ -21,11 +21,13 @@ classdef mazeTokens
         
         % constructor
         % maze : an audioMaze object with all the dimsensional info we
-        %        need
+        %               need
         %
-        % speakerLocs : an array of physical speaker locations in panel
+        % locs : an array of physical speaker locations in panel
         %               number (entrance is 1, upper left hand corner, 
         %               and exit is the last number, lower right hand corner)
+        % map  : an array of duples indicating which sound should correspond to which location
+        
         function obj = mazeTokens(maze, locs, map)
             
             obj.mazeLocs = locs;
@@ -69,13 +71,13 @@ classdef mazeTokens
   
         
 
-
-            % tack these on to the beginning and ending tokens
-            for n=1:length(map(:,1)) % number of rows 
-                obj.soundMap(n,:) = map(n,:);    
-                obj.wired(map(n,1)) = 1; % each of these is now wired
-                obj.active(map(n,1)) = 1; % and active
-
+            if ~isempty(map)
+                % tack these on to the beginning and ending tokens
+                for n=1:length(map(:,1)) % number of rows
+                    obj.soundMap(n,:) = map(n,:);
+                    obj.wired(map(n,1)) = 1; % each of these is now wired
+                    obj.active(map(n,1)) = 1; % and active
+                end
             end
 
         end 
