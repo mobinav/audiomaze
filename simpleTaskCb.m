@@ -507,36 +507,36 @@ function simpleTaskCb
 %             isNearWallHand, timeNearWallHand, nearWallCntHand, ...
 %             isTouchingWallHand, timeTouchingWallHand, touchingWallCntHand));
 
-
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % 9. check to see if we got to the end
-        if reachedEnd == 0
-            dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-            if dist<X.inTokenTol
-                reachedEnd = 1;
-            end
-        end
-        
-        
-        % check to see if we started, and returned
-        if hasStarted == 1;
-            dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-            if dist<X.inTokenTol
-                X.finished = 1;
-                if reachedEnd == 0
-                    X.LSL.MaxMSP.play_flourish(0, 'foo')
-                else
-                    X.LSL.MaxMSP.play_flourish(1, 'foo')
-                end
-            end
-        end
-        % check to see if we left the first square yet
-        if hasStarted == 0;
-            dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-            if dist>X.outTokenTol
-                hasStarted = 1;
-            end
-        end
+% 
+%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         % 9. check to see if we got to the end
+%         if reachedEnd == 0
+%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
+%             if dist<X.inTokenTol
+%                 reachedEnd = 1;
+%             end
+%         end
+%         
+%         
+%         % check to see if we started, and returned
+%         if hasStarted == 1;
+%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
+%             if dist<X.inTokenTol
+%                 X.finished = 1;
+%                 if reachedEnd == 0
+%                     X.LSL.MaxMSP.play_flourish(0, 'foo')
+%                 else
+%                     X.LSL.MaxMSP.play_flourish(1, 'foo')
+%                 end
+%             end
+%         end
+%         % check to see if we left the first square yet
+%         if hasStarted == 0;
+%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
+%             if dist>X.outTokenTol
+%                 hasStarted = 1;
+%             end
+%         end
         
         
         % determine the pitch of the wall touch sound

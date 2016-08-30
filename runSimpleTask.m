@@ -33,7 +33,7 @@ mz_lns = makeSimpleMazeRev(which_maze);
 % 4. sets up all the LSL outlets
 % 5. sets up the LSL inlet (looks for pahsespace stream) and defines the
 % phasespace markers of interest (head and hand markers)
-X = maze_init-2.0(mz_lns, n_rows, n_cols, h, w, false); 
+X = maze_init_rev(mz_lns, n_rows, n_cols, h, w, false); 
 
 % set the token map to give us the start and end points
 if strcmp(which_maze, 'E')
@@ -62,6 +62,9 @@ meanVel = mean(vel);
 
 %% stop and clear the maze
 X=stop_maze(X);
+if ~isempty(X.velocityFile)
+    fclose(X.velocityFile);
+end
 pause(2);
 close(X.am.fig_handle);
 clear all;
