@@ -20,9 +20,9 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
     %global mr;
     X = [];
     X.readFromLSL = true; % ***
-    X.functionHandle = [];
-    X.samplingRate  = 512;%512;
-    X.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
+%     X.functionHandle = [];
+%     X.samplingRate  = 512;%512;
+%     X.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
     
     X.h = h;
     X.w = w;
@@ -33,12 +33,12 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
     % with these values
 
     %global lastHandMarkers;
-    X.lastHandMarkers = zeros(8,3);
+%     X.lastHandMarkers = zeros(8,3);
 
     % mr_init;
     % from the script above:
-    maxChannels = 100;
-    initialLength = 10000;
+%     maxChannels = 100;
+%     initialLength = 10000;
 %     X.verboseLevel = 1; % 0 is no verbosity, 1 for medium and 2 is for max
 %     X.accumulatedData = nan(maxChannels, initialLength);
 %     X.numberOfChannelsInAccumulatedData = nan;
@@ -58,15 +58,15 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
 %     delete(timerfindall);
     
     % variables for keeping track of wall touch stats in real-time
-    X.was_near_wall = 0;
-    X.time_near_wall = 0;
-    X.total_time_near_wall = 0;
-    X.was_in_wall = 0;
-    X.time_in_wall = 0;
-    X.total_time_in_wall = 0;
-    
-    X.in_wall_cnt = 0;
-    X.near_wall_cnt = 0; % counters for wall touches
+%     X.was_near_wall = 0;
+%     X.time_near_wall = 0;
+%     X.total_time_near_wall = 0;
+%     X.was_in_wall = 0;
+%     X.time_in_wall = 0;
+%     X.total_time_in_wall = 0;
+%     
+%     X.in_wall_cnt = 0;
+%     X.near_wall_cnt = 0; % counters for wall touches
     
 %     X.head_was_near_wall = 0;
 %     X.head_time_near_wall = 0;
@@ -182,7 +182,7 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
    end
 
     %% initialize LSL, connect to MaxMSP (via patch lslreceive)
-    X = maze_init_audio_engine(X); % this function sets up all the LSL objects to send events to the audio engine
+    X = maze_init_LSL_outlets(X); % this function sets up all the LSL objects to send events to the audio engine
 
     %% init input from phasespace
     streaminfo = {};

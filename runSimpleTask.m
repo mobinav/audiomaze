@@ -21,10 +21,6 @@ h = 6.5;
 which_maze = 'E';
 mz_lns = makeSimpleMazeRev(which_maze);
 
-
-% set a token to show the start point endpoint of the maze
-
-
 % initialize the X variable
 % this function does the following
 % 1. initializes all the variables in the structure
@@ -41,14 +37,25 @@ if strcmp(which_maze, 'E')
                   1,4]; % end square
  
 end
+
 % use the tokens (these should be more abstract, but it works ok for now)
 X.tokens = mazeTokens(X.am, speakerLocs, []);
+% use this to keep track of endpoints to hit
+% of this list
+X.tokenReached = zeros(1, length(speakerLocs));
+% plot them on the maze
+% skip the last two
+plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), 'o', 'color', [.5 .5 .9], 'markersize',30, 'linewidth', 3);
+plot(X.tokens.mocapLocs(2:end-2,1), X.tokens.mocapLocs(2:end-2,2), 'o', 'color', [.9 .5 .5], 'markersize',30, 'linewidth', 3);
+
 
 %% start the maze
 simpleTaskMainLoop;
 
+
 %% stop the maze
 X=stop_maze(X);
+
 
 %% close the velocity file and read it
 if ~isempty(X.velocityFile)
@@ -69,5 +76,6 @@ pause(2);
 close(X.am.fig_handle);
 clear all;
 
-%% run once
+
+%% run once (for debugging)
 simpleTaskCb;

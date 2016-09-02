@@ -31,9 +31,6 @@ function simpleTaskCb
     persistent isNearWallHead isTouchingWallHead 
     persistent timeNearWallHead timeTouchingWallHead 
     persistent timeInWallHand timeInWallHead
-    
-    % performance statistics
-    persistent localAverageVelocity 
    
     % moving average filters and banks for local average
     persistent avB velocityState
@@ -43,7 +40,7 @@ function simpleTaskCb
     persistent diffB 
     
     % flag for whether or not we hit the end
-    persistent reachedEnd hasStarted
+    persistent hasStarted
     
     % only true the first time, initiallize (nearly) everything here
     if isempty(frameNumber)
@@ -67,11 +64,9 @@ function simpleTaskCb
         timeTouchingWallHead = 0;
         timeInWallHand = 0;
         timeInWallHead = 0;
-        
         velocityState = zeros(1,filtLength);
         avB = .1*ones(1,10);
         diffB = [1 -1];
-        reachedEnd = 0;
         hasStarted = 0;
     end
     
@@ -139,11 +134,19 @@ function simpleTaskCb
     % todo: implement John's more robust head positioner
     % anyway, get the good markers and find the location
     if ~isempty(goodHandMarkers)
-        handCentroid = nanmedian(goodHandMarkers(:,1:3));
+        % if we only have less than one good marker, the median will be wrong 
+        if length(goodHandMarkers)>1
+            handCentroid = nanmedian(goodHandMarkers(:,1:3));
+        % else default to lastHandCentroid
+        end
     end
     
     if ~isempty(goodHeadMarkers)
-        headCentroid = nanmedian(goodHeadMarkers(:,1:3));
+        % if we only have less than one good marker, the median will be wrong
+        if length(goodHeadMarkers)>1
+            headCentroid = nanmedian(goodHeadMarkers(:,1:3));
+        % else default to lastHeadCentroid
+        end
     end
     
     % velocity is the difference of the magnitude of the xy parts of the
@@ -193,7 +196,9 @@ function simpleTaskCb
             end;
         end
         
-
+if(length(handCentroid)<3)
+    j=1;
+end
     
         % find the nearest wall and the nearest point on that wall to the
         % hand
@@ -274,8 +279,8 @@ function simpleTaskCb
         plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',30, 'linewidth', 3);
 
         % compute the angle for the audio engine
-        angleForInRoomHand = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
-        angleForInRoomHead = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2))); 
+        handAzimuth = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
+        headAzimuth = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2))); 
 
                     
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -401,11 +406,13 @@ function simpleTaskCb
                 valueToSendHand = 999;
                 
                 % here we have just left near wall zone, reset flags and send
-                % HED marker (TODO)
+                % HED marker
                 if isNearWallHand == 1;
                     X.totalTimeNearWallHand = X.totalTimeNearWallHand + timeNearWallHand;
                     isNearWallHand = 0;
                     timeNearWallHand = 0;
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandNear/Offset/TotalDuration/%1.4f,',timeNearWallHand, X.totalTimeNearWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
                 % same, but for in wall
@@ -413,6 +420,8 @@ function simpleTaskCb
                     X.totalTimeTouchingWallHand = X.totalTimeTouchingWallHand + timeTouchingWallHand;
                     isTouchingWallHand = 0;
                     timeTouchingWallHand = 0;
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
             % we are now near the wall, possible in it or through it
@@ -422,10 +431,11 @@ function simpleTaskCb
                 % first frame near wall
                 if isNearWallHand == 0
                     X.nearWallCntHand = X.nearWallCntHand+1;
-                    %%%%%%% HED marker emition
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Onset/TouchCount/%d',X.nearWallCntHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs); 
                 end
 
-                % do this always
+                % do this always if near a wall
                 isNearWallHand = 1;
                 timeNearWallHand = timeNearWallHand+timeDiff;
 
@@ -435,14 +445,14 @@ function simpleTaskCb
                     % first frame touching wall
                     if isTouchingWallHand == 0
                         X.touchingWallCntHand = X.touchingWallCntHand+1;
-                        %%%%%%% HED marker emition
+                        HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/TouchCount/%d',X.touchingWallCntHand);
+                        X.LSL.emitHEDtag(HEDtag, timeIs);
                     end
 
-                    % do this always
+                    % do this always if touching a wall
                     isTouchingWallHand = 1;
                     timeTouchingWallHand = timeTouchingWallHand+timeDiff;
                 end
-
             end
             
             
@@ -457,6 +467,8 @@ function simpleTaskCb
                     X.totalTimeNearWallHead = X.totalTimeNearWallHead + timeNearWallHead;
                     isNearWallHead = 0;
                     timeNearWallHead = 0;
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadNear/Offset/TotalDuration/%1.4f,',timeNearWallHead, X.totalTimeNearWallHead);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
                 % same, but for in wall
@@ -464,21 +476,22 @@ function simpleTaskCb
                     X.totalTimeTouchingWallHead = X.totalTimeTouchingWallHead + timeTouchingWallHead;
                     isTouchingWallHead = 0;
                     timeTouchingWallHead = 0;
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
-                
-                
-                
-                % we are now near the wall, possible in it
+               
+            % we are now near the wall, possible in it
             else
                 valueToSendHead = (closestDistanceHead/X.headProximityThresh)^1;
                 
                 % first frame near wall
                 if isNearWallHead == 0
                     X.nearWallCntHead = X.nearWallCntHead+1;
-                    %%%%%%% HED marker emition
+                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Onset/TouchCount/%d',X.nearWallCntHead);
+                    X.LSL.emitHEDtag(HEDtag, timeIs); 
                 end
                 
-                % do this always
+                % do this always when head is near wall
                 isNearWallHead = 1;
                 timeNearWallHead = timeNearWallHead+timeDiff;
                 
@@ -488,56 +501,67 @@ function simpleTaskCb
                     % first frame touching wall
                     if isTouchingWallHead == 0
                         X.touchingWallCntHead = X.touchingWallCntHead+1;
-                        %%%%%%% HED marker emition
+                        HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Onset/TouchCount/%d',X.touchingWallCntHead);
+                        X.LSL.emitHEDtag(HEDtag, timeIs);
                     end
                     
-                    % do this always
+                    % do this always when head is touching wall
                     isTouchingWallHead = 1;
                     timeTouchingWallHead = timeTouchingWallHead+timeDiff;
                 end
-                
             end
-            
-
         end
         
-        % plot touch stats
-%         figure(X.am.fig_handle)
-%         title(sprintf('%d timeNearWallHand %1.3f %d %d timeTouchingWall %1.3f %d ', ...
-%             isNearWallHand, timeNearWallHand, nearWallCntHand, ...
-%             isTouchingWallHand, timeTouchingWallHand, touchingWallCntHand));
-
-% 
-%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         % 9. check to see if we got to the end
-%         if reachedEnd == 0
-%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-%             if dist<X.inTokenTol
-%                 reachedEnd = 1;
-%             end
-%         end
-%         
-%         
-%         % check to see if we started, and returned
-%         if hasStarted == 1;
-%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-%             if dist<X.inTokenTol
-%                 X.finished = 1;
-%                 if reachedEnd == 0
-%                     X.LSL.MaxMSP.play_flourish(0, 'foo')
-%                 else
-%                     X.LSL.MaxMSP.play_flourish(1, 'foo')
-%                 end
-%             end
-%         end
-%         % check to see if we left the first square yet
-%         if hasStarted == 0;
-%             dist = pdist([X.tokens.mocapLocs(2,:); headCentroid([1 2])], 'euclidean');
-%             if dist>X.outTokenTol
-%                 hasStarted = 1;
-%             end
-%         end
+       
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 9. check to see if we got to the end
+        for n=1:length(X.tokenReached)
+            if X.tokenReached(n) == 0
+                dist = pdist([X.tokens.mocapLocs(n,:); headCentroid([1 2])], 'euclidean');
+                if dist<X.inTokenTol
+                   % only plot this once
+                   if X.tokenReached(n) == 0
+                       plot(X.tokens.mocapLocs(n,1), X.tokens.mocapLocs(n,2), '.', 'color', [.9 .5 .5], 'markersize',30, 'linewidth', 3);
+                   end
+                    X.tokenReached(n) = 1;
+                end
+            end
+        end
         
+        % check to see if we started, and returned
+        if hasStarted == 1;
+            dist = pdist([X.tokens.mocapLocs(3,:); headCentroid([1 2])], 'euclidean');
+            if dist<X.inTokenTol
+                % only plot this once
+                if X.finished == 0;
+                    plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), '.', 'color', [.5 .5 .9], 'markersize',30, 'linewidth', 3);
+                end
+                X.finished = 1;
+                
+                % this is true if not all the end points were hit
+                if length(X.tokenReached(2:end)) ~= length(find(X.tokenReached(2:end)))
+                    X.LSL.MaxMSP.play_flourish(0, 'foo')
+                else
+                    X.LSL.MaxMSP.play_flourish(1, 'foo')
+                end
+            end
+        end
+        % check to see if we left the first square yet
+        if hasStarted == 0;
+            dist = pdist([X.tokens.mocapLocs(3,:); headCentroid([1 2])], 'euclidean');
+            if dist>X.outTokenTol
+                
+                % only plot this once
+                if hasStarted == 0
+                     plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), 'o', 'color', [.5 .5 .9], 'markersize',10, 'linewidth', 3);
+                end  
+                hasStarted = 1;
+               
+            end
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 10. send events to the audio engine and emit behavioral data    
         
         % determine the pitch of the wall touch sound
         noiseFreq = 1;
@@ -553,12 +577,18 @@ function simpleTaskCb
         
         % send the values to the audio engine
         X.LSL.MaxMSP.send_noise_freq(noiseFreq, '');
-        X.LSL.MaxMSP.send_hand_proximity(valueToSendHand, angleForInRoomHand, 'wallSound');
-        X.LSL.MaxMSP.send_headwall(valueToSendHead, angleForInRoomHead, 'wallSound');
+        X.LSL.MaxMSP.send_hand_proximity(valueToSendHand, handAzimuth, 'wallSound');
+        X.LSL.MaxMSP.send_headwall(valueToSendHead, headAzimuth, 'wallSound');
+        
+        % emit the behavioral data for this frame
+        frameData = [headCentroid, handCentroid, headAzimuth, handAzimuth, closestWallPointHead, closestWallPointHand];
+        X.LSL.emitBehaviorFrame(frameData, timeIs);
 
-
-    end
+    end % if frameNumber > 2
     
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % 11. finish by getting ready for the next frame
     lastHeadCentroid = headCentroid;
     lastHandCentroid = handCentroid;
     frameNumber = frameNumber+1;
