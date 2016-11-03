@@ -55,6 +55,9 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
 %     X.n_overheads = 1;
     X.inTokenTol = .45; % 1/3m
     X.outTokenTol = 1.5; % you must get this far away until you can replay
+    
+    % flag for making sure the flourish message is only sent once
+    X.canFlourish = 0;
 %     delete(timerfindall);
     
     % variables for keeping track of wall touch stats in real-time
@@ -88,6 +91,7 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
     X.totalTimeTouchingWallHead = 0;
     X.totalTimeInWallHand = 0;
     X.totalTimeInWallHead = 0;
+    X.lingeringWallCntHand = 0;
     X.touchingWallCntHand = 0;
     X.touchingWallCntHead = 0;
     X.nearWallCntHand = 0;

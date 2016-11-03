@@ -80,10 +80,31 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
 
     X.time_was = 0;
 
-    X.time_was = 0;
+
+    % 8/26/2016 DEM
+    X.totalTimeNearWallHand = 0;
+    X.totalTimeNearWallHead = 0;
+    X.totalTimeTouchingWallHand = 0;
+    X.totalTimeTouchingWallHead = 0;
+    X.totalTimeInWallHand = 0;
+    X.totalTimeInWallHead = 0;
+    X.touchingWallCntHand = 0;
+    X.touchingWallCntHead = 0;
+    X.nearWallCntHand = 0;
+    X.nearWallCntHead = 0;
+    X.inWallCntHead = 0;
+    X.inWallCntHand = 0;
+    X.timeTotal = 0;
+    
+    X.nearWallCntHand = 0;
+    X.nearWallCntHead = 0;
+    X.inWallCnt = 0;
+    
+    
     
     X.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
     X.headProximityThresh = .15;
+    X.handProximityThresh = .3;
     % determine the 'in wall' proximity threshold according to how max/msp
     % understands it (midi units, 0-127)
     % the proximity here is 0-1 (once we cross the near wall threshold) so
@@ -95,6 +116,10 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     MAX_head_wall_prox_thresh = 90; % got this from the MAX patch
     X.head_in_wall_prox = MAX_head_wall_prox_thresh/127; 
 
+    
+    %X.velocityPlot = figure(12);
+    % file to hold all the absolute values of velocity for grand total
+    X.velocityFile = fopen('velocityFile', 'W');
     
     % buoy playback control
     X.buoy_time_accum = 0;
@@ -120,6 +145,7 @@ function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
     X.head_crossed = 0;
     X.hand_crossed = 0;
     
+    X.finished = 0;
      
     %% make the maze
 

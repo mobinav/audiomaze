@@ -5,7 +5,7 @@
 % make_maze_polygons (for a random maze) or make_maze_polygons_nr (for a
 % predetermined maze)
 
-function X = maze_init(maze_lines, n_rows, n_cols, h, w, doVR)
+function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
 
 
     if nargin < 4

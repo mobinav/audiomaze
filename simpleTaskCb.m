@@ -42,6 +42,13 @@ function simpleTaskCb
     % flag for whether or not we hit the end
     persistent hasStarted
     
+    % flag for whether or not we can play the goal sound
+    persistent canFlourish
+    
+    % if too long 'near wall', switch to 'in wall' sound
+    
+    persistent nearWallAccumThresh
+    
     % only true the first time, initiallize (nearly) everything here
     if isempty(frameNumber)
         frameNumber = 0;
@@ -68,6 +75,9 @@ function simpleTaskCb
         avB = .1*ones(1,10);
         diffB = [1 -1];
         hasStarted = 0;
+        canFlourish = 1;
+        nearWallAccumulator = 0;
+        nearWallAccumThresh = 2;
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -130,10 +140,11 @@ function simpleTaskCb
     headCentroid = lastHeadCentroid;
     handCentroid = lastHandCentroid;
     
+    
     % find head and hand locations
     % todo: implement John's more robust head positioner
     % anyway, get the good markers and find the location
-    if ~isempty(goodHandMarkers)
+    if ~isempty(goodHandMarkers) && frameNumber ~= 1
         % if we only have less than one good marker, the median will be wrong 
         if length(goodHandMarkers)>1
             handCentroid = nanmedian(goodHandMarkers(:,1:3));
@@ -141,7 +152,7 @@ function simpleTaskCb
         end
     end
     
-    if ~isempty(goodHeadMarkers)
+    if ~isempty(goodHeadMarkers) && frameNumber ~=1
         % if we only have less than one good marker, the median will be wrong
         if length(goodHeadMarkers)>1
             headCentroid = nanmedian(goodHeadMarkers(:,1:3));
@@ -151,18 +162,19 @@ function simpleTaskCb
     
     % velocity is the difference of the magnitude of the xy parts of the
     % head centroid, should always be
-    velocity = filter(diffB,1, [norm(lastHeadCentroid(1:2)) norm(headCentroid(1:2))])/timeDiff;
+    velocity = abs(filter(diffB,1, [norm(lastHeadCentroid(1:2)) norm(headCentroid(1:2))])/timeDiff);
     
     % record the absolute value of velocity for later averaging
    if ~isempty(X.velocityFile)
         fprintf(X.velocityFile, '%f', velocity(end));
-    end
+   end
+
+   lastVelocity = velocity;
     
     % N point moving average fiter
-    velocityState(2:end) = velocityState(1:end-1);
-    velocityState(1) = velocity(end);
-    localAverageVelocity = filter(avB, 1, velocityState);
-    lastVelocity = velocity;
+%     velocityState(2:end) = velocityState(1:end-1);
+%     velocityState(1) = velocity(end);
+%     localAverageVelocity = filter(avB, 1, velocityState);
     
     % plot it
 %     if ~isempty(X.velocityPlot)
@@ -409,19 +421,19 @@ end
                 % HED marker
                 if isNearWallHand == 1;
                     X.totalTimeNearWallHand = X.totalTimeNearWallHand + timeNearWallHand;
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandNear/Offset/TotalDuration/%1.4f,',timeNearWallHand, X.totalTimeNearWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                     isNearWallHand = 0;
                     timeNearWallHand = 0;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandNear/Offset/TotalDuration/%1.4f,',timeNearWallHand, X.totalTimeNearWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
                 % same, but for in wall
                 if isTouchingWallHand == 1;
                     X.totalTimeTouchingWallHand = X.totalTimeTouchingWallHand + timeTouchingWallHand;
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                     isTouchingWallHand = 0;
                     timeTouchingWallHand = 0;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
             % we are now near the wall, possible in it or through it
@@ -431,21 +443,30 @@ end
                 % first frame near wall
                 if isNearWallHand == 0
                     X.nearWallCntHand = X.nearWallCntHand+1;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Onset/TouchCount/%d',X.nearWallCntHand);
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Onset/TouchCount/%d',X.nearWallCntHand);
                     X.LSL.emitHEDtag(HEDtag, timeIs); 
                 end
 
                 % do this always if near a wall
                 isNearWallHand = 1;
                 timeNearWallHand = timeNearWallHand+timeDiff;
-
+                
+                % check to see if lingering 'near' a wall, and switch to
+                % alarm if so
+                if timeNearWallHand > nearWallAccumThresh
+                    X.lingeringWallCntHand = X.lingeringWallCntHand+1;
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/LingerCount/%d',X.lingeringWallCntHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
+                    valueToSendHand = 1;
+                end
+                
                 % wall alarm is sounding
-                if 1-valueToSendHand > X.hand_in_wall_prox
+                if 1-valueToSendHand > X.hand_in_wall_prox && timeNearWallHand <= nearWallAccumThresh
 
                     % first frame touching wall
                     if isTouchingWallHand == 0
                         X.touchingWallCntHand = X.touchingWallCntHand+1;
-                        HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/TouchCount/%d',X.touchingWallCntHand);
+                        HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/TouchCount/%d',X.touchingWallCntHand);
                         X.LSL.emitHEDtag(HEDtag, timeIs);
                     end
 
@@ -465,19 +486,19 @@ end
                 % HED marker (TODO)
                 if isNearWallHead == 1;
                     X.totalTimeNearWallHead = X.totalTimeNearWallHead + timeNearWallHead;
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadNear/Offset/TotalDuration/%1.4f,',timeNearWallHead, X.totalTimeNearWallHead);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                     isNearWallHead = 0;
                     timeNearWallHead = 0;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadNear/Offset/TotalDuration/%1.4f,',timeNearWallHead, X.totalTimeNearWallHead);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                 
                 % same, but for in wall
                 if isTouchingWallHead == 1;
                     X.totalTimeTouchingWallHead = X.totalTimeTouchingWallHead + timeTouchingWallHead;
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
+                    X.LSL.emitHEDtag(HEDtag, timeIs);
                     isTouchingWallHead = 0;
                     timeTouchingWallHead = 0;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
                 end
                
             % we are now near the wall, possible in it
@@ -487,7 +508,7 @@ end
                 % first frame near wall
                 if isNearWallHead == 0
                     X.nearWallCntHead = X.nearWallCntHead+1;
-                    HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Onset/TouchCount/%d',X.nearWallCntHead);
+                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Onset/TouchCount/%d',X.nearWallCntHead);
                     X.LSL.emitHEDtag(HEDtag, timeIs); 
                 end
                 
@@ -501,7 +522,7 @@ end
                     % first frame touching wall
                     if isTouchingWallHead == 0
                         X.touchingWallCntHead = X.touchingWallCntHead+1;
-                        HEDtag = srpintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Onset/TouchCount/%d',X.touchingWallCntHead);
+                        HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Onset/TouchCount/%d',X.touchingWallCntHead);
                         X.LSL.emitHEDtag(HEDtag, timeIs);
                     end
                     
@@ -530,7 +551,7 @@ end
         
         % check to see if we started, and returned
         if hasStarted == 1;
-            dist = pdist([X.tokens.mocapLocs(3,:); headCentroid([1 2])], 'euclidean');
+            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
             if dist<X.inTokenTol
                 % only plot this once
                 if X.finished == 0;
@@ -539,16 +560,34 @@ end
                 X.finished = 1;
                 
                 % this is true if not all the end points were hit
-                if length(X.tokenReached(2:end)) ~= length(find(X.tokenReached(2:end)))
+                if length(X.tokenReached(2:end)) ~= length(find(X.tokenReached(2:end))) && canFlourish == 1
                     X.LSL.MaxMSP.play_flourish(0, 'foo')
+                    canFlourish = 0;
+                    stop_maze();
+                    bonus = 10 - X.touchingWallCntHand - lingeringWallCntHand;
+                    bonus = .1 * bonus;
+                    if bonus < 0
+                        bonus = 0;
+                    end
+                    disp('Bonus = 1.2%f', bonus);
                 else
-                    X.LSL.MaxMSP.play_flourish(1, 'foo')
+                    if canFlourish == 1
+                        X.LSL.MaxMSP.play_flourish(1, 'foo')
+                        canFlourish = 0;
+                        stop_maze();
+                        bonus = 10 - X.touchingWallCntHand - X.lingeringWallCntHand;
+                        bonus = .1 * bonus;
+                        if bonus < 0
+                            bonus = 0;
+                        end
+                        disp('Bonus = 1.2%f', bonus);
+                    end
                 end
             end
         end
         % check to see if we left the first square yet
-        if hasStarted == 0;
-            dist = pdist([X.tokens.mocapLocs(3,:); headCentroid([1 2])], 'euclidean');
+        if hasStarted == 0 && headCentroid([1]) ~= [0] && headCentroid([2]) ~= [0]; % this is only true before the ps is active
+            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
             if dist>X.outTokenTol
                 
                 % only plot this once
@@ -592,5 +631,9 @@ end
     lastHeadCentroid = headCentroid;
     lastHandCentroid = handCentroid;
     frameNumber = frameNumber+1;
-
+    
+    % for debugging:
+%     if(frameNumber == 10)  
+%         stop_maze();
+%     end
 end

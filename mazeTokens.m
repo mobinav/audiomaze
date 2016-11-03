@@ -38,11 +38,11 @@ classdef mazeTokens
             panel_w = maze.roomDims(2)/cols;
             
             
-            obj.endpoints(1,:) = [(maze.roomDims(2)*-.5+panel_w*.5), maze.roomDims(1)*-.5+panel_h*.5];
-            % exit location
-            obj.endpoints(2,:) = [(maze.roomDims(2)*.5 - panel_w*.5), maze.roomDims(1)*.5-panel_h*.5];
-
-            obj.endpoints_hit = 0;
+%             obj.endpoints(1,:) = [(maze.roomDims(2)*-.5+panel_w*.5), maze.roomDims(1)*-.5+panel_h*.5];
+%             % exit location
+%             obj.endpoints(2,:) = [(maze.roomDims(2)*.5 - panel_w*.5), maze.roomDims(1)*.5-panel_h*.5];
+% 
+%             obj.endpoints_hit = 0;
           
             
             %obj.mocapLocs
@@ -58,14 +58,14 @@ classdef mazeTokens
             end      
             % add endpoints to wired list
             
-            obj.end2_idx = length(locs(:,1))+1;
-            obj.end1_idx = length(locs(:,1))+2;
+%             obj.end2_idx = length(locs(:,1))+1;
+%             obj.end1_idx = length(locs(:,1))+2;
 
-            for n=length(locs(:,1))+1:length(locs(:,1))+2
-                obj.mocapLocs(n,:) = obj.endpoints(n-length(locs(:,1)),:);
-                obj.count = obj.count + 1;
-                obj.wired(n) = 1; % set to connected
-            end  
+%             for n=length(locs(:,1))+1:length(locs(:,1))+2
+%                 obj.mocapLocs(n,:) = obj.endpoints(n-length(locs(:,1)),:);
+%                 obj.count = obj.count + 1;
+%                 obj.wired(n) = 1; % set to connected
+%             end  
             obj.active = zeros(size(obj.wired)); % set to innactive
             
   

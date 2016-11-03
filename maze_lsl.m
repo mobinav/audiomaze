@@ -35,7 +35,7 @@
     send_near_wall_marker = 0;
     send_touch_wall_marker = 0;
     
-    send_buoy_markere = 0;
+    send_buoy_marker = 0;
     send_wall_event = 0;
     send_token_event = 0;
 

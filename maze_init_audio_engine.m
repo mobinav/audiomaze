@@ -31,12 +31,17 @@ function X = maze_init_audio_engine(X)
     X.LSL.MaxMSP.outlet(7) = lsl_outlet(X.LSL.MaxMSP.streamInfo(7));
 
     disp('Initializing LSL event outlets')
-    % outlet to report speaker events as they occur
-    X.LSL.MaxMSP.streamInfo(8) = lsl_streaminfo(X.LSL.lib,'stimulusEvents','Event',1,0,'cf_string','speakerEvents');
+    % outlet to report speaker events as they occur, as HED tags
+    X.LSL.MaxMSP.streamInfo(8) = lsl_streaminfo(X.LSL.lib,'HEDtags','Event',1,0,'cf_string','HEDtags1234');
     X.LSL.MaxMSP.outlet(8) = lsl_outlet(X.LSL.MaxMSP.streamInfo(8));
 
-    % behavior events
-    X.LSL.MaxMSP.streamInfo(9) = lsl_streaminfo(X.LSL.lib,'behaviorEvents','Event',1,0,'cf_string','behaviorEvents');
+    % behavior data
+    X.LSL.MaxMSP.streamInfo(9) = lsl_streaminfo(X.LSL.lib,'behaviorData','Behavior',5,0,'cf_float32','behaviorData1234');
+    chns = info.desc().append_child('channels');
+    for label = {'headCentroid', 'handCentroid', 'azimuth', 'nearestWallPointHead', 'nearestWallPointHand'}
+        ch= chns.append_dhild('channel');
+        ch.append_child_value('label', label{1});
+    end
     X.LSL.MaxMSP.outlet(9) = lsl_outlet(X.LSL.MaxMSP.streamInfo(9));
     
 
@@ -63,7 +68,11 @@ function X = maze_init_audio_engine(X)
     X.LSL.MaxMSP.emitStimulusEvent = @(event) ...
         X.LSL.MaxMSP.outlet(8).push_sample({num2str(event)});
     X.LSL.MaxMSP.emitBehaviorEvent = @(event) ...
-        X.LSL.MaxMSP.outlet(9).push_sample({num2str(event)});
+        X.LSL.MaxMSP.outlet(9).push_sample({single(headCentroid), ...
+                                            single(handCentroid), ...
+                                            single(azimuth), ...
+                                            single(nearestWallPointHead), ...
+                                            single(nearestWallPointHand)});
     
 
 end

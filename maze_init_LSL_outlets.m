@@ -44,7 +44,21 @@ function X = maze_init_LSL_outlets(X)
     end
     X.LSL.outlet(2) = lsl_outlet(X.LSL.streamInfo(2));
     
+    % just to record the maze information at the beginning of the run
+    X.LSL.streamInfo(3) = lsl_streaminfo(X.LSL.lib,'trialInfo','Event',3,0,'cf_string','trialInfo1234');
+        for label = {'whichMaze', 'randomSeed', 'trialNumber'}
+        ch= chns.append_child('channel');
+        ch.append_child_value('label', label{1});
+    end
+    X.LSL.outlet(3) = lsl_outlet(X.LSL.streamInfo(3));
 
+    % just to record the stats at the end of the run
+    X.LSL.streamInfo(4) = lsl_streaminfo(X.LSL.lib,'trialStats','Event',9,0,'cf_float32','trialStats1234');
+        for label = {'averageVelocity', 'handNearWallTotalCount', 'handTouchingWallTotalCount', 'handNearWallTotalTime', 'handTouchingWallTotalTime', 'headNearWallTotalCount', 'headTouchingWallTotalCount', 'headNearWallTotalTime', 'headTouchingWallTotalTime'}
+        ch= chns.append_child('channel');
+        ch.append_child_value('label', label{1});
+    end
+    X.LSL.outlet(4) = lsl_outlet(X.LSL.streamInfo(4));
 
     
     X.LSL.MaxMSP.play_sound = @(beaconSoundID, soundOn, loop, azimuth, volume, beaconEventCode) ...
@@ -69,6 +83,9 @@ function X = maze_init_LSL_outlets(X)
         X.LSL.outlet(1).push_sample({num2str(event)}, timeStamp);
     X.LSL.emitBehaviorFrame = @(frameData, timeStamp) ...
         X.LSL.outlet(2).push_sample(frameData, timeStamp);
-
+    X.LSL.emitInfo = @(which_maze, random_seed, trial_number) ...
+        X.LSL.outlet(3).push_sample({which_maze, num2str(random_seed), num2str(trial_number)});
+    X.LSL.emitStats = @(statData) ...
+        X.LSL.outlet(4).push_sample(statData);
 
 end
