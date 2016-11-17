@@ -77,18 +77,20 @@ function simpleTaskCb
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % 0. if this is the first frame, play the bell sound
+    % 0. keep track of time
+    timeIs = lsl_local_clock(X.LSL.lib);
+    timeDiff = timeIs-timeWas;
+    X.timeTotal = X.timeTotal+timeDiff;
+    timeWas = timeIs;
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % 1. if this is the first frame, play the bell sound
     if frameNumber == 0
         X.LSL.MaxMSP.play_flourish(3, 'foo')
          HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/StartBell,Filename/start_bell.wav';
          X.LSL.emitHEDtag(HEDtag, timeIs);
     end    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % 1. keep track of time
-    timeIs = lsl_local_clock(X.LSL.lib);
-    timeDiff = timeIs-timeWas;
-    X.timeTotal = X.timeTotal+timeDiff;
-    timeWas = timeIs;
+
     
     % default 
     valueToSendHand = 999;
