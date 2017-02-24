@@ -1,6 +1,6 @@
-% callback function that is the main loop of the simpleTask 
-% implementation of the audiomaze
 function simpleTaskCb
+% simpleTaskCb callback function that is the main loop of the simpleTask 
+% implementation of the audiomaze
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 0. initialize variables
@@ -45,7 +45,6 @@ function simpleTaskCb
     % flag for whether or not we can play the goal sound
     persistent canFlourish
 
-    
     % only true the first time, initiallize (nearly) everything here
     if isempty(frameNumber)
         frameNumber = 0;
@@ -96,13 +95,16 @@ function simpleTaskCb
     valueToSendHand = 999;
     valueToSendHead = 999;
     
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 2. get the latest phasespace input
     
     % pull the newest sample and organize the data
+    goodHandMarkers=[];
+    goodHeadMarkers=[];
     [sample, stamps] = X.LSL.phasespace.inlet.pull_chunk();
+
     if ~isempty(sample)    
+        frameNumber = frameNumber+1;
         ys = double(sample(1:4:end-1,end));
         zs = double(sample(2:4:end-1,end));
         xs = double(sample(3:4:end-1,end));
@@ -110,8 +112,6 @@ function simpleTaskCb
 
         X.mocap.markerPosition = [ys, xs, zs, conf];
         
-        goodHandMarkers=[];
-        goodHeadMarkers=[];
         cnt=1;
         for n=1:length(X.mocap.markers.rightHand)
             if X.mocap.markerPosition(X.mocap.markers.rightHand(n),4)>0
@@ -142,8 +142,7 @@ function simpleTaskCb
     end
     
     % default, in case the whole thing is missing
-    headCentroid = lastHeadCentroid;
-    handCentroid = lastHandCentroid;
+    
     
     
     % find head and hand locations
@@ -151,33 +150,28 @@ function simpleTaskCb
     % anyway, get the good markers and find the location
     if frameNumber~=0
         if ~isempty(goodHandMarkers)% && frameNumber ~= 0
-            % if we only have less than one good marker, the median will be wrong 
-            if length(goodHandMarkers)>1
-                handCentroid = nanmedian(goodHandMarkers(:,1:3));
-            % else default to lastHandCentroid
-            end
+            handCentroid = nanmedian(goodHandMarkers(:,1:3),1);
+        else
+            handCentroid = lastHandCentroid;
+            fprintf(2,'NoHand\n');
         end
-
 
         if ~isempty(goodHeadMarkers) %&& frameNumber ~=0
-            % if we only have less than one good marker, the median will be wrong
-            if length(goodHeadMarkers)>1
-                headCentroid = nanmedian(goodHeadMarkers(:,1:3));
-            % else default to lastHeadCentroid
-            end
+            headCentroid = nanmedian(goodHeadMarkers(:,1:3),1);
+            % velocity is the difference of the magnitude of the xy parts
+            % of the head centroid, should always be positive
+            velocity = abs(filter(diffB,1, [norm(lastHeadCentroid(1:2)) norm(headCentroid(1:2))])/timeDiff);
+            lastVelocity = velocity;
+        else
+            headCentroid = lastHeadCentroid;
+            velocity = lastVelocity;
+            fprintf(2,'NoHead\n');
         end
 
-
-        % velocity is the difference of the magnitude of the xy parts of the
-        % head centroid, should always be
-        velocity = abs(filter(diffB,1, [norm(lastHeadCentroid(1:2)) norm(headCentroid(1:2))])/timeDiff);
-
-        % record the absolute value of velocity for later averaging
+       % record the absolute value of velocity for later averaging
        if ~isempty(X.velocityFile)
-            fprintf(X.velocityFile, '%f', velocity(end));
+            fprintf(X.velocityFile, '%f, ', velocity(end));
        end
-
-       lastVelocity = velocity;
 
         % N point moving average fiter
     %     velocityState(2:end) = velocityState(1:end-1);
@@ -195,7 +189,7 @@ function simpleTaskCb
     %        set(gca,'fontsize',14);
     %     end
 
-        if frameNumber >= 2;%5 % let it warm up a bit before rolling
+        if frameNumber >= 5 % let it warm up a bit before rolling
 
 
 
@@ -207,19 +201,23 @@ function simpleTaskCb
                 if X.mocap.doSimplePlot,
                     h=findobj(gcf,'tag','markers');
                     delete(h)
-
-                    plot(goodHandMarkers(:,1), goodHandMarkers(:,2),'r.','tag','markers','markersize',20);
-                    plot(goodHeadMarkers(:,1), goodHeadMarkers(:,2),'.','tag','markers','markersize',20);
+                    if ~isempty(goodHandMarkers),
+                        plot(goodHandMarkers(:,1), goodHandMarkers(:,2),'r.','tag','markers','markersize',20);
+                    else
+                        plot(handCentroid(1),handCentroid(2),'mo','tag','markers','markersize',16)
+                    end
+                    
+                    if ~isempty(goodHeadMarkers),
+                        plot(goodHeadMarkers(:,1), goodHeadMarkers(:,2),'.','tag','markers','markersize',20);
+                    else
+                        plot(headCentroid(1),headCentroid(2),'co','tag','markers','markersize',16)
+                    end
 
                     set(gca, 'YLim', [-4 4]);
                     set(gca, 'XLim', [-4 4]);
                 end;
             end
-
-    if(length(handCentroid)<3)
-        j=1;
-    end
-
+            
             % find the nearest wall and the nearest point on that wall to the
             % hand
             [nearestPoints, distances] = X.am.findNearestPoints(handCentroid);
@@ -650,8 +648,10 @@ function simpleTaskCb
         % 11. finish by getting ready for the next frame
         lastHeadCentroid = headCentroid;
         lastHandCentroid = handCentroid;
+        
+       
     end
-    frameNumber = frameNumber+1;
+ 
     
     % for debugging:
 %     if(frameNumber == 10)  

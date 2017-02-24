@@ -1,5 +1,5 @@
-function mz_lns = makeSimpleMazeRev(code)
-% mz_lns = makeSimpleMaze(code)
+function [mz_lns, token_locs] = makeSimpleMazeRev(code)
+% [mz_lns, token_locs] = makeSimpleMaze(code)
 %
 % make simple mazes from Levy-Tzedek S, Maidenbaum S, Amedi A, Lackner J (2016)
 %Aging and Sensory Substitution in a Virtual Navigation Task. PLoS ONE
@@ -16,9 +16,15 @@ n_row=5;
 n_col=5;
 wallThickness = 0;
 
-maze = zeros(n_row*n_col,2); %25 squares, right/bottom
+maze = zeros(n_row*n_col,2); %25 squares, 1=left/2=top, numbered from lower right corner
+    %right->left, bottom->top by rows
+%1 2 3 4 5
+%6 7 8 9 10 etc
+
+%token_locs are row,column but with origin in lower right corner!
+
 switch upper(code),
-  
+      
   % I shape
   case 'A',
     maze(2,1) = 1;
@@ -31,6 +37,8 @@ switch upper(code),
     maze(18,1) = 1;
     maze(22,1) = 1;
     maze(23,1) = 1;
+    token_locs = [1,3; ... % start square
+        5,3]; % end square
   
   % L shape
   case 'B',
@@ -42,21 +50,38 @@ switch upper(code),
     maze(11,1)=1;
     maze(16,1)=1;
     maze(16,2)=1;
+    token_locs = [4,1; ... % start square
+        1,4]; % end square
       
-  % U shape  
-  case 'C',
-    maze(1,1)=1;
-    maze(3,1)=1;
+   % U shape  (horzontal orientation--really a "C" shape now)
+   case 'C',
+    maze(1:3,2)=1;
     maze(4,1)=1;
-    maze(6,1)=1;
-    maze(8,1)=1;
-    maze(9,1)=1;
-    maze(11,1)=1;
-    maze(12,2)=1;
+    maze(8:9,1)=1;
+    maze(11:12,2)=1;
     maze(13,1:2)=1;
     maze(14,1)=1;
-    maze(16:19,2)=1;
-    maze(19,1)=1;
+    maze(16:18,2)=1;
+    maze(19,1:2)=1;
+    token_locs = [1,1; ... % start square
+        4,1]; % end square
+    
+  % U shape  (vertical orientation)
+%   case 'C',
+%     maze(1,1)=1;
+%     maze(3,1)=1;
+%     maze(4,1)=1;
+%     maze(6,1)=1;
+%     maze(8,1)=1;
+%     maze(9,1)=1;
+%     maze(11,1)=1;
+%     maze(12,2)=1;
+%     maze(13,1:2)=1;
+%     maze(14,1)=1;
+%     maze(16:19,2)=1;
+%     maze(19,1)=1;
+%     token_locs = [1,1; ... % start square
+%         1,4]; % end square
   
   % Z shape
   case 'D',
@@ -73,7 +98,9 @@ switch upper(code),
     maze(18,2)=1;
     maze(19,2)=1;
     maze(20,2)=1;
-  
+    token_locs = [1,1; ... % start square
+        4,5]; % end square
+
   % T shape
   case 'E',
     maze(2,1)=1;
@@ -87,7 +114,9 @@ switch upper(code),
     maze(18,1)=1;
     maze(19,2)=1;
     maze(20,2)=1;
-    
+    token_locs = [1,3; ... % start square
+        5,1;5,5]; % end squares
+
   % X shape
   case 'F',
     maze(2,1)=1;
@@ -105,8 +134,8 @@ switch upper(code),
     maze(18,1)=1;
     maze(22,1)=1;
     maze(23,1)=1;
-
- % case 'F',
+    token_locs = [1,3; ... % start square
+        3,1;3,5;5,3]; % end squares
       
   otherwise
    error('unknown maze code') 

@@ -1,75 +1,83 @@
+function simpleMaze()
 % function for initiating a simple maze session
 % @param which    : upper case character A-F indicating which maze to build
 % @param trial_no : which run through the maze (1-3)
 
-function simpleMaze()
-
 global which_maze;
+global subject_id;
 %global random_seed;
 global trial_number;
 global X;
 global mazeStopped;
 
+is_practice = false;
 
-condition = 1;
-is_practice = 0;
-while(condition)
-    str = whichMazePrompt();
-    if str == 'A' | str == 'B' | str == 'C' | str == 'D' | str == 'E' | str == 'F' | str == 'P'
-        which_maze = str;
-        condition = 0;
-        
-        % set the maze to 'A' for the practice round
-        if which_maze == 'P'
-            which_maze = 'A'
-            is_practice = 1;
-        end
-    else
-        disp('invalid maze selection, please choose A-F or P');
-        condition = 1;
-    end
+subject_id = input('Enter subject ID: ','s');
+
+which_maze = whichMazePrompt();
+if which_maze == 'P'
+    which_maze = 'A'
+    is_practice = true;
 end
 
-if is_practice ~= 1
-    condition = 1
-    while(condition)
-        trial = whichTrialPrompt();
-        if trial >= 1 && trial <=3
-            trial_number = trial;
-            condition = 0;
-        else
-            disp('invalid trial selection, please choose 1-3');
-            condition = 1;
-        end
-    end
-
-    disp(sprintf('Initiating maze %s for trial %d', which_maze, trial_number));
-    simpleInitScrpt();
-
-
-    prompt = 'Maze initiated. Press any key to begin.\n';
-    str = input(prompt,'s');
-    if isempty(str)
-        str = 'Y';
-    end
-
-    infoData = [which_maze, num2str(random_seed), num2str(trial_number)];
-    X.LSL.emitInfo(which_maze, random_seed, trial_number);
-    simpleTaskMainLoop;
-
-% special case of practice maze
-else
-    disp(sprintf('Initiating practice maze maze %s', which_maze));
-    simpleInitScrpt();
+if ~is_practice,
+    trial_number = whichTrialPrompt();
     
-    prompt = 'Maze initiated. Press any key to begin.\n';
-    str = input(prompt,'s');
-    if isempty(str)
-        str = 'Y';
+    str = bonusPrompt();
+    if str=='Y',
+        disp('Resetting bonus to 0')
+        f = fopen([subject_id '_bonusFile'], 'W');
+        fprintf(f, '%f', 0.0);
+        fclose(f);
     end
+    
+    fprintf('%s: Initiating maze %s for trial %d\n', subject_id, which_maze, trial_number);
+    simpleInitScrpt;
+        
+    disp('Maze initiated. Press any key to begin.')
+    pause
+    
+    X.LSL.emitInfo(which_maze, random_seed, trial_number);
+    
     simpleTaskMainLoop;
-
+    
+% special case of practice maze: 
+else
+    fprintf('Initiating practice maze %s', which_maze);
+    simpleInitScrpt;
+    
+    disp('Maze initiated. Press any key to begin.')
+    pause
+    
+    simpleTaskMainLoop;
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = whichMazePrompt()
+prompt = 'Enter maze type A-F, or P for practice: ';
+choices = 'ABCDEFP';
+while true,
+    str = upper(input(prompt,'s'));
+    str = str(1);
+    if any(str==choices),
+        break
+    else
+        fprintf(2,'Invalid selection. Try again.\n')
+    end
 end
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function trial = whichTrialPrompt()
+prompt = 'Enter trial number 1-3: ';
+trial = 0;
+while (isnan(trial) || trial < 1 || trial > 3),
+    str = input(prompt,'s');
+    trial = floor(str2double(str));
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function str = bonusPrompt()
+bonus = 0;
+prompt = 'Initiate new bonus record? Y/N [N]: ';
+str = upper(input(prompt,'s'));
+if isempty(str)
+    str = 'N';
+end

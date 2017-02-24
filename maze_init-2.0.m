@@ -211,12 +211,17 @@ function X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVR)
     %mr.mocap.markers.rightHand = 11:18;
     %mr.mocap.markers.leftHand = 23:30;
     %%
-
+if 0
     % "4 gloves, 2 heads (dev)" configureation
     X.mocap.markers.phasespaceConfiguration = '4 gloves, 2 heads (dev)';
     X.mocap.markers.head = 1:4;
     X.mocap.markers.rightHand = 8:15;
     X.mocap.markers.leftHand = 16:23;
+end
 
-
+    % "audiomaze suit" configureation
+    X.mocap.markers.phasespaceConfiguration = 'audiomaze suit';
+    X.mocap.markers.head = 1:4;
+    X.mocap.markers.rightHand = 21:28;
+    X.mocap.markers.leftHand = 33:40;
 end

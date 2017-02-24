@@ -199,26 +199,20 @@ classdef audioMaze      % audio maze object
             obj.roomWalls(:,3:4) = obj.roomWallsNrm(:,3:4) * obj.roomDims(2);
             
             
-            % enable the vr plotting options
-            
-            
+            % enable the vr plotting options          
         end
         
-        function plotMaze(obj)
-            
+        function plotMaze(obj)           
             %            figure(11);clf;
             % todo : fudge wall lengths to line up boundaries (hurray! MATLAB
             % graphics)
-            
+            figure(obj.fig_handle)
             for i=1:length(obj.mazeWalls(:,1))
                 line(obj.mazeWalls(i,1:2), obj.mazeWalls(i,3:4), 'linewidth', 10, 'color',[.7 .7 1]);
                 %                 pause(.5);
             end
             set(gca, 'XDir', 'reverse');
-            pause(1)
-            
-            
-            
+            axis equal
         end% function
         
         function [nearestPoints, distances] = findNearestPoints(obj, points)

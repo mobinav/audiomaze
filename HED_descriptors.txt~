@@ -1,0 +1,25 @@
+-- Subject Interacts with Wall (e.g. touches wall with hand)
+Behavior
+|_NearWall
+  |_Hand
+    |_Centroid
+    |_Count
+    |_Distance
+  |_Head
+    |_Centroid
+    |_Count
+    |_Distance
+  |_WallLocation
+|_TouchWall
+  ...
+|_CrossWall
+  ...
+|_UncrossWall
+
+-- Stimulus Feedback From Maze
+Stimulus
+  |_Feedback
+    |_Auditory
+      |_Loudness
+      |_Type (i.e. head sound etc.)
+      |_Location (Azimuth)

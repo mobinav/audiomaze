@@ -1,0 +1,45 @@
+
+
+
+	LSL Maze notes
+3/17/2016 
+DEM
+
+To start the audio portion of the maze.
+
+Run 'LSLMazewpoly-devel.maxpat'. Follow the instructions to turn the audio on.  
+
+Make sure that the preset ~/Desktop/Presets/AUDIO_MAZE_2016 is loaded in the HDSP Matrix.
+
+Enjoy.
+
+
+12/19/13
+JRI/MM
+Converting maze patches to use lslaudio (using esther's experiment as a model)
+
+master version is on hoarding/mobi/audiomaze/MAX
+
+MAX patches live at hoarding/mobi//audiomaze/dev/MAX/lslsendevent and /Volumes/mobi/audiomaze/dev/MAX/lslreceive
+
+1/14/14
+Did Pilot with Makoto, seem to have worked out all the bugs
+Note, the vr plotting seems to do something critical to the maze calculation, which should be fixed
+Consider special sound at wall end, wall penetration and edge of world.
+Shrink the maze away from room edges
+Improve handling of two hands, and when markers drop out.
+
+STARTUP
+
+MoBI_DEMOS/MAZE_LSL
+
+Open HDSPe Mixer, load AUDIO_MAZE_2014 mixer preset
+Open lslreceiver.maxpat
+Open LSLMazewpoly.maxpat
+
+On presenting, open matlab, execute Run_AudioMaze.m  in E:\Demo\AudioMazeLSL
+
+On MOBI, use "Full Body 1 w/DG (48)"
+
+4/21/15
+MOBI phasespace now uses "4 gloves, 2 heads"
