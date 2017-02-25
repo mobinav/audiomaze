@@ -220,11 +220,12 @@ if 0
     X.mocap.markers.leftHand = 16:23;
 end
     
-    % "audiomaze suit" configureation
-    X.mocap.markers.phasespaceConfiguration = 'audiomaze suit';
-    X.mocap.markers.head = 1:4;
-    X.mocap.markers.rightHand = 21:28;
-    X.mocap.markers.leftHand = 33:40;
+%% "Audiomaze Suit 480" configuration (Feb, 2017--optimized 480Hz)
+X.mocap.markers.phasespaceConfiguration = 'Audiomaze Suit 480';
+X.mocap.markers.head = 1:4; %headCenter al, al, pl, pr
+X.mocap.markers.headOrientation = 5:7; %L-Nose-R
+X.mocap.markers.rightHand = 16:20;
+X.mocap.markers.leftHand = [];
 
 
 end

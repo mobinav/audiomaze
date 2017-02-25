@@ -4,7 +4,7 @@
 % run this after setting up phasespace, lsl, and sound engine
 % clear('mr');
 % global mr;
-cd('Z:\audiomaze-2.0')
+cd('c:\Users\mobi\Desktop\audiomaze-2.0')
 current_dir = pwd;
 addpath(current_dir,path);
 addpath(strcat(current_dir,'\vr'));
@@ -16,11 +16,11 @@ w = 6;
 h = 6.5;
 
 % make a randomly seeded maze:
-random_seed = 10
-% [~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', 0, random_seed);
+random_seed = 1
+ [~, mz_lns] = make_maze_polygons(n_rows, n_cols, 'S', 0, random_seed);
 % mz_lns = importdata('./mazes/single_corridor.mat');
 % mz_lns = importdata('./mazes/scott_testmaze.mat');
-mz_lns = makeSimpleMazeRev('E');
+%mz_lns = makeSimpleMazeRev('E');
 
 % make a prescribed maze (see testMazeBuilder for details)
 % maze_c = [0,1; 1,0; 0,0; 0,0; 1,1; 0,0; 0,0; 0,0; 0,0];

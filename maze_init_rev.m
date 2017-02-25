@@ -22,27 +22,6 @@ X.readFromLSL = true; % ***obsolete--used to switch away from datariver
 X.h = h;
 X.w = w;
 
-% note: added 11/13/15 DEM
-% mechanism for dealing with emitter drop errors
-% store the last good set of hand emitters and replace 0s
-% with these values
-
-%global lastHandMarkers;
-%     X.lastHandMarkers = zeros(8,3);
-
-% mr_init;
-% from the script above:
-%     maxChannels = 100;
-%     initialLength = 10000;
-%     X.verboseLevel = 1; % 0 is no verbosity, 1 for medium and 2 is for max
-%     X.accumulatedData = nan(maxChannels, initialLength);
-%     X.numberOfChannelsInAccumulatedData = nan;
-%     X.numberOfFramesInAccumulatedData = 0;
-%     X.numberOfFramesReceived = 0;
-%     X.event = [];
-%     X.eventChannelNumber = nan; % when reading from datariver, event channel is not represented as a separate channel, but as the .event field of incoming samples.
-%     X.eeg.channelOffset = 0;
-
 X.doVrPlot = doVrPlot;
 
 %     X.overheads = [0,0]; % test, center of room
@@ -52,31 +31,6 @@ X.outTokenTol = 1.5; % you must get this far away until you can replay
 
 % flag for making sure the flourish message is only sent once
 X.canFlourish = 0;
-%     delete(timerfindall);
-
-% variables for keeping track of wall touch stats in real-time
-%     X.was_near_wall = 0;
-%     X.time_near_wall = 0;
-%     X.total_time_near_wall = 0;
-%     X.was_in_wall = 0;
-%     X.time_in_wall = 0;
-%     X.total_time_in_wall = 0;
-%
-%     X.in_wall_cnt = 0;
-%     X.near_wall_cnt = 0; % counters for wall touches
-
-%     X.head_was_near_wall = 0;
-%     X.head_time_near_wall = 0;
-%     X.total_head_time_near_wall = 0;
-%     X.head_was_in_wall = 0;
-%     X.time_head_in_wall = 0;
-%     X.total_head_time_in_wall = 0;
-%
-%     X.head_in_wall_cnt = 0;
-%     X.head_near_wall_cnt = 0; % counters for wall touches
-%
-%     X.time_was = 0;
-
 
 % 8/26/2016 DEM
 X.totalTimeNearWallHand = 0;
@@ -113,42 +67,22 @@ X.head_in_wall_prox = MAX_head_wall_prox_thresh/127;
 % file to hold all the absolute values of velocity for grand total
 X.velocityFile = fopen('velocityFile', 'W');
 
-%     % buoy playback control
-%     X.buoy_time_accum = 0;
-%     X.buoy_time_thresh = [10 20]; % time in the cycle to sound beacon
-%     X.buoy_trig = [1 1]; % trigger the sound on or off
-
-%makoto mr_init_writing('/tmp/AudioSuite', 10, 20);
-
-%     X.numberOfFramesInAccumulatedData = 0;
-
 % for mocap, specify mocap channel subset
 X.mocap.firstChannel = 1; % first channel is events or should be ignored
 X.mocap.lastChannel = nan; % use nan to make it until the last one that exist
 
 X.mocap.doSimplePlot = true;
 
-%     X.onePoleArmCentroid = [];
-%     X.lastArmCentroid = [0 0 0];
-%     X.lastHeadMarkerPosition = [0 0 0];
-
-%     X.is_in_wall = 0;
-%     X.was_in_wall = 0;
-%     X.head_crossed = 0;
-%     X.hand_crossed = 0;
-
 X.bonus = 1.00;
 X.wallTouchDeduction = .10;
 X.finished = 0;
-X.nearWallAccumThresh = 5;
+X.nearWallAccumThresh = inf; %if near wall for this # seconds, warn: Feb 2017 JRI: 5->inf to disable
 
 %% make the maze
 X.am = audioMaze(X.h, X.w, n_rows, n_cols, maze_lines);
 
-%figure(11);
 X.am.plotMaze();
 hold on;
-
 
 %% vr world stuff
 if X.doVrPlot == true;

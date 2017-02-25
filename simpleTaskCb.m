@@ -90,7 +90,6 @@ function simpleTaskCb
          X.LSL.emitHEDtag(HEDtag, timeIs);
     end    
 
-    
     % default 
     valueToSendHand = 999;
     valueToSendHead = 999;
@@ -127,7 +126,6 @@ function simpleTaskCb
             end
         end
         
-        
         if isempty(lastMarkers)
             lastMarkers = X.mocap.markerPosition;
         end
@@ -143,8 +141,6 @@ function simpleTaskCb
     
     % default, in case the whole thing is missing
     
-    
-    
     % find head and hand locations
     % todo: implement John's more robust head positioner
     % anyway, get the good markers and find the location
@@ -157,7 +153,7 @@ function simpleTaskCb
         end
 
         if ~isempty(goodHeadMarkers) %&& frameNumber ~=0
-            headCentroid = nanmedian(goodHeadMarkers(:,1:3),1);
+            headCentroid = nanmedian(goodHeadMarkers(:,1:3),1); %TODO more robust head center
             % velocity is the difference of the magnitude of the xy parts
             % of the head centroid, should always be positive
             velocity = abs(filter(diffB,1, [norm(lastHeadCentroid(1:2)) norm(headCentroid(1:2))])/timeDiff);
@@ -190,8 +186,6 @@ function simpleTaskCb
     %     end
 
         if frameNumber >= 5 % let it warm up a bit before rolling
-
-
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 4. find the arm, head, nearest points on the walls and plot them 
@@ -229,7 +223,6 @@ function simpleTaskCb
             closestDistanceHead = min(distances(:));
             [closestWallIdHead closestMarkerIdHead] = find(distances == closestDistanceHead);
             closestWallPointHead = nearestPoints{closestMarkerIdHead(1)}(closestWallIdHead(1),:);
-
 
             if length(closestWallIdHand)>1 % at some corners, it will find two points here and go haywire
                 closestWallIdHand = closestWallIdHand(1); % arbitrarily choose the first one
@@ -389,7 +382,7 @@ function simpleTaskCb
                                 delete(g)
                             end
                             line(X.am.mazeWalls(closestWallIdHand,1:2), X.am.mazeWalls(closestWallIdHand,3:4), 'linewidth', 10, 'color','k', 'tag', 'handCrossedWall');
-                            break; % got one, no need to continue
+                            %break; % got one, no need to continue
                         end
 
                         if whichSide(D, A, B) ~= whichSide(lastHeadCentroid, A, B)
@@ -401,8 +394,8 @@ function simpleTaskCb
                             if ~isempty(g)
                                 delete(g)
                             end
-                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','g', 'tag', 'headCrossedWall');
-                            break; % got one, no need to continue
+                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 5, 'color','g', 'tag', 'headCrossedWall');
+                            %break; % got one, no need to continue
                         end
                     end
                 end
@@ -464,7 +457,6 @@ function simpleTaskCb
                         HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/LingerCount/%d',X.lingeringWallCntHand);
                         X.LSL.emitHEDtag(HEDtag, timeIs);
                         valueToSendHand = 0;
-
                     end
 
                     % wall alarm is sounding

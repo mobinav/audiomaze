@@ -37,9 +37,9 @@ function X = maze_init_audio_engine(X)
 
     % behavior data
     X.LSL.MaxMSP.streamInfo(9) = lsl_streaminfo(X.LSL.lib,'behaviorData','Behavior',5,0,'cf_float32','behaviorData1234');
-    chns = info.desc().append_child('channels');
+    chns =  X.LSL.MaxMSP.streamInfo(9).desc().append_child('channels');
     for label = {'headCentroid', 'handCentroid', 'azimuth', 'nearestWallPointHead', 'nearestWallPointHand'}
-        ch= chns.append_dhild('channel');
+        ch= chns.append_child('channel');
         ch.append_child_value('label', label{1});
     end
     X.LSL.MaxMSP.outlet(9) = lsl_outlet(X.LSL.MaxMSP.streamInfo(9));
