@@ -1,5 +1,5 @@
 % class definition for an audio maze object
-% this is a severe revision of the previous incantantaion of the audiomaze
+% this is a severe revision of the previous incantantation of the audiomaze
 % code by David Medine, SCCN
 % begun 9-30-2015
 

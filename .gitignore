@@ -7,3 +7,5 @@ max\soundfiles\*
 *.wav
 *.aiff
 max/old/*
+*bonusFile
+velocityFile
