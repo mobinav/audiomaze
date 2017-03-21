@@ -9,3 +9,7 @@ max\soundfiles\*
 max/old/*
 *bonusFile
 velocityFile
+*.log
+*~
+.DS_Store
+
