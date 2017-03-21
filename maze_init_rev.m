@@ -73,8 +73,6 @@ X.mocap.lastChannel = nan; % use nan to make it until the last one that exist
 
 X.mocap.doSimplePlot = true;
 
-X.bonus = 1.00;
-X.wallTouchDeduction = .10;
 X.finished = 0;
 X.nearWallAccumThresh = inf; %if near wall for this # seconds, warn: Feb 2017 JRI: 5->inf to disable
 

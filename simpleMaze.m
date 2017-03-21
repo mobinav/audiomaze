@@ -3,53 +3,66 @@ function simpleMaze()
 % @param which    : upper case character A-F indicating which maze to build
 % @param trial_no : which run through the maze (1-3)
 
-global which_maze;
-global subject_id;
-%global random_seed;
-global trial_number;
+%set up maze-specific rewards
+rewardStructure.maze.A.shape = 'I';
+rewardStructure.maze.A.totalReward = 1;
+
+rewardStructure.maze.B.shape = 'L';
+rewardStructure.maze.B.totalReward = 1;
+
+rewardStructure.maze.C.shape = 'U';
+rewardStructure.maze.C.totalReward = 2;
+
+rewardStructure.maze.D.shape = 'T';
+rewardStructure.maze.D.totalReward = 2;
+
+rewardStructure.maze.E.shape = '+';
+rewardStructure.maze.E.totalReward = 4;
+
+%set up general rewards and penalties
+rewardStructure.mazeCompletedBonus = 1; %for exploring entire maze (reaching all goal tokens)
+rewardStructure.wallTouchPenalty = 0.1; %for touching 'in' the wall
+rewardStructure.wallProximityPenalty = 0.01; %for every touch of the 'warning zone' 
+
 global X;
 global mazeStopped;
 
 is_practice = false;
 
-subject_id = input('Enter subject ID: ','s');
+X=[]; %current maze state structure
+
+X.subject_id = input('Enter subject ID: ','s');
 
 which_maze = whichMazePrompt();
 if which_maze == 'P'
-    which_maze = 'A'
+    which_maze = 'A';
     is_practice = true;
 end
+X.which_maze = which_maze;
 
 if ~is_practice,
-    trial_number = whichTrialPrompt();
+    X.trial_number = whichTrialPrompt();
     
-    str = bonusPrompt();
-    if str=='Y',
-        disp('Resetting bonus to 0')
-        f = fopen([subject_id '_bonusFile'], 'W');
-        fprintf(f, '%f', 0.0);
-        fclose(f);
-    end
-    
-    fprintf('%s: Initiating maze %s for trial %d\n', subject_id, which_maze, trial_number);
-    simpleInitScrpt;
+    fprintf('%s: Initiating maze %s for trial %d\n', X.subject_id, X.which_maze, X.trial_number);
+    X = simpleInit(X);
         
     disp('Maze initiated. Press any key to begin.')
     pause
     
-    X.LSL.emitInfo(which_maze, random_seed, trial_number);
+    X.LSL.emitInfo(X.which_maze, X.random_seed, X.trial_number);
     
-    simpleTaskMainLoop;
+    simpleTaskMainLoop; %this accesses global X
     
 % special case of practice maze: 
 else
-    fprintf('Initiating practice maze %s', which_maze);
-    simpleInitScrpt;
+    X.trial_number = 0;
+    fprintf('Initiating practice maze %s', X.which_maze);
+    X=simpleInit(X);
     
     disp('Maze initiated. Press any key to begin.')
     pause
     
-    simpleTaskMainLoop;
+    simpleTaskMainLoop; %this accesses global X
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,12 +85,4 @@ trial = 0;
 while (isnan(trial) || trial < 1 || trial > 4),
     str = input(prompt,'s');
     trial = floor(str2double(str));
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = bonusPrompt()
-bonus = 0;
-prompt = 'Initiate new bonus record? Y/N [N]: ';
-str = upper(input(prompt,'s'));
-if isempty(str)
-    str = 'N';
 end
