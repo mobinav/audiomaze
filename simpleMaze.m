@@ -67,9 +67,9 @@ while true,
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function trial = whichTrialPrompt()
-prompt = 'Enter trial number 1-3: ';
+prompt = 'Enter trial number 1-4: ';
 trial = 0;
-while (isnan(trial) || trial < 1 || trial > 3),
+while (isnan(trial) || trial < 1 || trial > 4),
     str = input(prompt,'s');
     trial = floor(str2double(str));
 end
