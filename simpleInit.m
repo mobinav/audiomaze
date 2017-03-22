@@ -1,20 +1,15 @@
 function X = simpleInit(X)
 
-%% setup
-% set path correctly
-%cd('Z:\audiomaze-2.0')
-cd('c:\Users\mobi\Desktop\audiomaze-2.0')
-current_dir = pwd;
-addpath(current_dir,path);
-addpath(strcat(current_dir,'\vr'));
-
 % maze dimensions
 n_rows = 5;
 n_cols = 5;
 
 % room dimensions
-w = 6;
-h = 6.5;
+% w = 6;
+% h = 6.5;
+
+w = 5;
+h = 5;
 
 X.random_seed = 0;
 
