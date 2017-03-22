@@ -14,7 +14,7 @@ function simpleTaskCb
     persistent isInWall
     
     % if we want to use the last good marker data to fill in bad markers
-    persistent lastMarkers
+    persistent lastMarkers lastMarkerWasFresh acceptableMarkerAge 
     
     % other persistent variables, previous frame data
     persistent lastWallIdHead lastWallIdHand lastHeadCentroid lastHandCentroid lastVelocity
@@ -72,7 +72,6 @@ function simpleTaskCb
         diffB = [1 -1];
         hasStarted = 0;
         canFlourish = 1;
-
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -98,18 +97,72 @@ function simpleTaskCb
     % 2. get the latest phasespace input
     
     % pull the newest sample and organize the data
+    % phasespace native coordinates are  'x' = N, 'y' = up, 'z' = E
+    %   NB, this holds after recalibration march 2017. Prior to that x&z
+    %   may have been swapped, e.g. if alignment done in different order?
+    %   alignment method: origin, North mark, West mark
+    
+    % we use two strategies to protect from missing markers
+    %   1) each LSL chunk has all samples since last call--if our maze
+    %   cycle time is ~20ms, that should be about 9 samples. Previously, we
+    %   used only the most recent sample. Instead, find the most recent
+    %   'good' sample, if any
+    %   2) keep track of markers that were good the last maze frame and use
+    %   these to 'fill in' any markers missing from this frame
     goodHandMarkers=[];
     goodHeadMarkers=[];
     [sample, stamps] = X.LSL.phasespace.inlet.pull_chunk();
 
     if ~isempty(sample)    
         frameNumber = frameNumber+1;
-        ys = double(sample(1:4:end-1,end));
-        zs = double(sample(2:4:end-1,end));
-        xs = double(sample(3:4:end-1,end));
-        conf = double(sample(4:4:end-1,end));
+        %here we convert phasespace coords to a more conventional system
+        %where X = East, Y = North, Z = up--makes most sense sitting in control room
+        
+        ys = sample(1:4:end-1,:); %N
+        zs = sample(2:4:end-1,:); %up
+        xs = sample(3:4:end-1,:); %E
+        conf = sample(4:4:end-1,:);
+        
+        %pick the last good observation for each marker within this chunk
+        %(this may be a pointless edge case, since it only helps when the
+        %dropout occurs during the chunk, which is probably rare--might as
+        %well look across chunks. 
+        goodObservation = sample(4:4:end-1,:) ~= -1; %marker 'confidence' if = -1, it's missing
+        [nMarkers, nSamples] = size(goodObservation);
+        idx = ones(nMarkers, 1) * [1:nSamples];
+        lastGoodObs = max(goodObservation .* idx, [], 2);
+        lastGoodObs(lastGoodObs==0) = 1;
+        lastGoodObsIndex = sub2ind([nMarkers, nSamples], 1:nMarkers, lastGoodObs');
+        xs = xs(lastGoodObsIndex);
+        ys = ys(lastGoodObsIndex);
+        zs = zs(lastGoodObsIndex);
+        conf = conf(lastGoodObsIndex);
 
-        X.mocap.markerPosition = [ys, xs, zs, conf];
+        %X.mocap.markerPosition = [ys, xs, zs, conf];
+        %March 22, 2017 we recalibrated and it seems to have changed the phase space coords!
+        X.mocap.markerPosition = [xs(:) ys(:) zs(:) conf(:)]; %nmarker x coord
+        
+        %store last markers to provide some redundancy from dropouts
+        %initialize (first time only)
+        if isempty(lastMarkers)
+            lastMarkers = X.mocap.markerPosition;
+            lastMarkerWasFresh = frameNumber * ones(nMarkers,1);
+            acceptableMarkerAge = 5; %older than five frames is marked as stale
+        end
+        
+        %we can use last markers to fill in missing markers (so long as
+        %last markers are also good and fresh)
+        badCurrentMarkerIds = (X.mocap.markerPosition(:,4) < 0); %missing markers in current chunk
+        %invalidate stale lastMarkers
+        lastMarkers( (frameNumber-lastMarkerWasFresh)>acceptableMarkerAge, 4) = -999;
+        %replace current bad markers with fresh history
+        goodLastMarkerIds = (lastMarkers(:,4) >=0 );
+        replaceableMarkers = badCurrentMarkerIds & goodLastMarkerIds;
+        X.mocap.markerPosition(replaceableMarkers,:) = lastMarkers(replaceableMarkers,:);
+        
+        %update lastMarkers with all good markers from this sample
+        lastMarkers(~badCurrentMarkerIds,:) =  X.mocap.markerPosition(~badCurrentMarkerIds,:);
+        lastMarkerWasFresh(~badCurrentMarkerIds) = frameNumber;
         
         cnt=1;
         for n=1:length(X.mocap.markers.rightHand)
@@ -126,17 +179,6 @@ function simpleTaskCb
             end
         end
         
-        if isempty(lastMarkers)
-            lastMarkers = X.mocap.markerPosition;
-        end
-
-        goodMarkerIds = find(X.mocap.markerPosition(:,4) ~= -1);
-        badMarkerIds = find(X.mocap.markerPosition(:,4) == -1);
-
-        % do we want to use the last set of good markers?
-        % anyway, here it is
-        X.mocap.markerPosition(badMarkerIds,:) = lastMarkers(badMarkerIds,:);
-        lastMarkers(goodMarkerIds,:) =  X.mocap.markerPosition(goodMarkerIds,:);
     end
     
     % default, in case the whole thing is missing
@@ -144,7 +186,7 @@ function simpleTaskCb
     % find head and hand locations
     % todo: implement John's more robust head positioner
     % anyway, get the good markers and find the location
-    if frameNumber~=0
+    if frameNumber > 1
         if ~isempty(goodHandMarkers)% && frameNumber ~= 0
             handCentroid = nanmedian(goodHandMarkers(:,1:3),1);
         else
@@ -165,9 +207,9 @@ function simpleTaskCb
         end
 
        % record the absolute value of velocity for later averaging
-       if ~isempty(X.velocityFile)
-            fprintf(X.velocityFile, '%f, ', velocity(end));
-       end
+ %      if ~isempty(X.velocityFile)
+ %          fprintf(X.velocityFile, '%f, ', velocity(end));
+ %      end
 
         % N point moving average fiter
     %     velocityState(2:end) = velocityState(1:end-1);
@@ -189,7 +231,9 @@ function simpleTaskCb
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 4. find the arm, head, nearest points on the walls and plot them 
-            if ~isempty(goodMarkerIds)
+            goodMarkerIds = (X.mocap.markerPosition(:,4) >= 0);
+            if any(goodMarkerIds)
+                fprintf(' %d', sum(goodMarkerIds))
 
                 % do the initial plotting
                 if X.mocap.doSimplePlot,
