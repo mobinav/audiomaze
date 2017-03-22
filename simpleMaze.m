@@ -1,31 +1,36 @@
 function simpleMaze()
 % function for initiating a simple maze session
-% @param which    : upper case character A-F indicating which maze to build
-% @param trial_no : which run through the maze (1-3)
+
+%set up paths
+audiomazeDir = 'c:\Users\mobi\Desktop\audiomaze-2.0';
+cd(audiomazeDir)
+addpath(fullfile(audiomazeDir,'vr',''));
+
+%% PARAMETER SETTINGS
+% these will apply to entire experiment
 
 %set up maze-specific rewards
-rewardStructure.maze.A.shape = 'I';
-rewardStructure.maze.A.totalReward = 1;
+defaultRewardStructure.maze.A.shape = 'I';
+defaultRewardStructure.maze.A.mazeReward = 1;
 
-rewardStructure.maze.B.shape = 'L';
-rewardStructure.maze.B.totalReward = 1;
+defaultRewardStructure.maze.B.shape = 'L';
+defaultRewardStructure.maze.B.mazeReward = 1;
 
-rewardStructure.maze.C.shape = 'U';
-rewardStructure.maze.C.totalReward = 2;
+defaultRewardStructure.maze.C.shape = 'U';
+defaultRewardStructure.maze.C.mazeReward = 2;
 
-rewardStructure.maze.D.shape = 'T';
-rewardStructure.maze.D.totalReward = 2;
+defaultRewardStructure.maze.D.shape = 'T';
+defaultRewardStructure.maze.D.mazeReward = 2;
 
-rewardStructure.maze.E.shape = '+';
-rewardStructure.maze.E.totalReward = 4;
+defaultRewardStructure.maze.E.shape = '+';
+defaultRewardStructure.maze.E.mazeReward = 4;
 
 %set up general rewards and penalties
-rewardStructure.mazeCompletedBonus = 1; %for exploring entire maze (reaching all goal tokens)
-rewardStructure.wallTouchPenalty = 0.1; %for touching 'in' the wall
-rewardStructure.wallProximityPenalty = 0.01; %for every touch of the 'warning zone' 
+defaultRewardStructure.mazeCompletedBonus = 1; %for exploring entire maze (reaching all goal tokens)
+defaultRewardStructure.wallTouchPenalty = 0.1; %for touching 'in' the wall
+defaultRewardStructure.wallProximityPenalty = 0.01; %for every touch of the 'warning zone' 
 
 global X;
-global mazeStopped;
 
 is_practice = false;
 
@@ -39,6 +44,10 @@ if which_maze == 'P'
     is_practice = true;
 end
 X.which_maze = which_maze;
+X.rewardStructure.shape = defaultRewardStructure.maze.(X.which_maze).shape;
+X.rewardStructure.mazeReward = defaultRewardStructure.maze.(X.which_maze).mazeReward;
+X.rewardStructure = copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty'});
+X.rewardStructure.rewardReceived = 0.0; 
 
 if ~is_practice,
     X.trial_number = whichTrialPrompt();
@@ -50,6 +59,8 @@ if ~is_practice,
     pause
     
     X.LSL.emitInfo(X.which_maze, X.random_seed, X.trial_number);
+    
+    %debugMocap;
     
     simpleTaskMainLoop; %this accesses global X
     
@@ -66,13 +77,12 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function str = whichMazePrompt()
+function maze = whichMazePrompt()
 prompt = 'Enter maze type A-F, or P for practice: ';
 choices = 'ABCDEFP';
 while true,
-    str = upper(input(prompt,'s'));
-    str = str(1);
-    if any(str==choices),
+    maze = upper(input(prompt,'s'));
+    if ~isempty(maze) && any(choices==maze(1)),
         break
     else
         fprintf(2,'Invalid selection. Try again.\n')
