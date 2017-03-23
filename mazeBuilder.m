@@ -27,7 +27,7 @@
 %  -+++--------- 
 %  | 1 | 2 + 3 |
 %  -+++-----+++-
-%  | 4 + 5 | 5 |
+%  | 4 + 5 | 6 |
 %  -+++-----+++-
 %  | 7 + 8 + 9 |
 %  ---------+++-
@@ -45,7 +45,7 @@
 %
 %
 % the return variable is an array of points that adhere to the coordinate
-% system given by the random maze generator make_maaze_polygons
+% system given by the random maze generator make_maze_polygons
 % this is then fed into the audioMaze creator to generate the
 % maze object
 % 

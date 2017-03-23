@@ -1,5 +1,5 @@
 % class definition for an audio maze object
-% this is a severe revision of the previous incantantation of the audiomaze
+% this is a severe revision of the previous incantation of the audiomaze
 % code by David Medine, SCCN
 % begun 9-30-2015
 
@@ -41,14 +41,24 @@ classdef audioMaze      % audio maze object
             mz_lns = mz_lns-.5;
             
             % orient the maze correctly and normalize it
-            tmp = mz_lns(:,1:2)/n_cols-.5;
-            mz_lns(:,1:2) = (n_rows - mz_lns(:,3:4))/n_rows-.5;
-            mz_lns(:,3:4) = tmp;
+%             tmp = mz_lns(:,1:2)/n_cols-.5;
+%             mz_lns(:,1:2) = (n_rows - mz_lns(:,3:4))/n_rows-.5;
+%             mz_lns(:,3:4) = tmp;
+            
+            mz_lns(:,1:2) = mz_lns(:,1:2)/n_cols-.5;
+            mz_lns(:,3:4) = mz_lns(:,3:4)/n_rows-.5;
             
             %             roomWidth = 8.5598;
             %             roomHeight = 7.5565;
             
             % apply it to the object
+%             obj.mazeWallsNrm = mz_lns;
+%             obj.roomDims = [rm_height rm_width];
+%             obj.mbyn = [n_rows, n_cols];
+%             
+%             obj.mazeWalls(:,1:2) = -obj.mazeWallsNrm(:,1:2) * obj.roomDims(2);
+%             obj.mazeWalls(:,3:4) = obj.mazeWallsNrm(:,3:4) * obj.roomDims(1);
+
             obj.mazeWallsNrm = mz_lns;
             obj.roomDims = [rm_height rm_width];
             obj.mbyn = [n_rows, n_cols];
@@ -211,7 +221,7 @@ classdef audioMaze      % audio maze object
                 line(obj.mazeWalls(i,1:2), obj.mazeWalls(i,3:4), 'linewidth', 10, 'color',[.7 .7 1]);
                 %                 pause(.5);
             end
-            set(gca, 'XDir', 'reverse');
+            %set(gca, 'XDir', 'reverse'); %pure Evil!
             axis equal
         end% function
         

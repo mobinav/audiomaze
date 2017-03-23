@@ -5,7 +5,7 @@ function [mz_lns, token_locs] = makeSimpleMazeRev(code)
 %Aging and Sensory Substitution in a Virtual Navigation Task. PLoS ONE
 %11(3): e0151593. doi:10.1371/journal.pone.0151593
 %
-% e.g. "A"
+% e.g. "D"
 % x
 % x
 % x x x
