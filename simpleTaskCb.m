@@ -106,7 +106,7 @@ function simpleTaskCb
     %   1) each LSL chunk has all samples since last call--if our maze
     %   cycle time is ~20ms, that should be about 9 samples. Previously, we
     %   used only the most recent sample. Instead, find the most recent
-    %   'good' sample, if any
+    %   'good' sample, if any -- at best an occasional gain
     %   2) keep track of markers that were good the last maze frame and use
     %   these to 'fill in' any markers missing from this frame
     goodHandMarkers=[];
@@ -118,25 +118,33 @@ function simpleTaskCb
         %here we convert phasespace coords to a more conventional system
         %where X = East, Y = North, Z = up--makes most sense sitting in control room
         
-        ys = sample(1:4:end-1,:); %N
-        zs = sample(2:4:end-1,:); %up
-        xs = sample(3:4:end-1,:); %E
-        conf = sample(4:4:end-1,:);
-        
-        %pick the last good observation for each marker within this chunk
-        %(this may be a pointless edge case, since it only helps when the
-        %dropout occurs during the chunk, which is probably rare--might as
-        %well look across chunks. 
-        goodObservation = sample(4:4:end-1,:) ~= -1; %marker 'confidence' if = -1, it's missing
-        [nMarkers, nSamples] = size(goodObservation);
-        idx = ones(nMarkers, 1) * [1:nSamples];
-        lastGoodObs = max(goodObservation .* idx, [], 2);
-        lastGoodObs(lastGoodObs==0) = 1;
-        lastGoodObsIndex = sub2ind([nMarkers, nSamples], 1:nMarkers, lastGoodObs');
-        xs = xs(lastGoodObsIndex);
-        ys = ys(lastGoodObsIndex);
-        zs = zs(lastGoodObsIndex);
-        conf = conf(lastGoodObsIndex);
+        if 1,
+            % 1) pick the last good observation for each marker within this chunk
+            %(this may be a pointless edge case, since it only helps when the
+            %dropout occurs during the chunk, which is probably rare--might as
+            %well look across chunks.
+            ys = sample(1:4:end-1,:); %N
+            zs = sample(2:4:end-1,:); %up
+            xs = sample(3:4:end-1,:); %E
+            conf = sample(4:4:end-1,:);
+            
+            goodObservation = sample(4:4:end-1,:) ~= -1; %marker 'confidence' if = -1, it's missing
+            [nMarkers, nSamples] = size(goodObservation);
+            idx = ones(nMarkers, 1) * [1:nSamples];
+            lastGoodObs = max(goodObservation .* idx, [], 2);
+            lastGoodObs(lastGoodObs==0) = 1;
+            lastGoodObsIndex = sub2ind([nMarkers, nSamples], 1:nMarkers, lastGoodObs');
+            xs = xs(lastGoodObsIndex);
+            ys = ys(lastGoodObsIndex);
+            zs = zs(lastGoodObsIndex);
+            conf = conf(lastGoodObsIndex);
+        else %simple--just take last sample
+            ys = sample(1:4:end-1,end); %N
+            zs = sample(2:4:end-1,end); %up
+            xs = sample(3:4:end-1,end); %E
+            conf = sample(4:4:end-1,end);
+            nMarkers = length(ys);
+        end
 
         %X.mocap.markerPosition = [ys, xs, zs, conf];
         %March 22, 2017 we recalibrated and it seems to have changed the phase space coords!
@@ -231,8 +239,9 @@ function simpleTaskCb
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 4. find the arm, head, nearest points on the walls and plot them 
-            goodMarkerIds = (X.mocap.markerPosition(:,4) >= 0);
-            if any(goodMarkerIds)
+            
+            if ~isempty(goodHandMarkers) || ~isempty(goodHeadMarkers)
+                goodMarkerIds = (X.mocap.markerPosition(:,4) >= 0);
                 fprintf(' %d', sum(goodMarkerIds))
 
                 % do the initial plotting
