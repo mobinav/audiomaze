@@ -1,5 +1,6 @@
 % simpleTaskMainLoop -- run the actual maze
 DEBUG = true; %the while loop below makes debugging easier
+clear simpleTaskCb %needed to reset persistent variables
 
 if DEBUG
     %use this loop for debugging--the timer makes it hard to debug because it
