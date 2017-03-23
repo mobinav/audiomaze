@@ -65,7 +65,8 @@ X.head_in_wall_prox = MAX_head_wall_prox_thresh/127;
 
 %X.velocityPlot = figure(12);
 % file to hold all the absolute values of velocity for grand total
-X.velocityFile = fopen('velocityFile', 'W');
+%X.velocityFile = fopen('velocityFile', 'W');
+% we'll store velocity and bonus in the X structure now.
 
 % for mocap, specify mocap channel subset
 X.mocap.firstChannel = 1; % first channel is events or should be ignored
