@@ -49,9 +49,6 @@ X.inWallCntHand = 0;
 X.inWallCnt = 0;
 X.timeTotal = 0;
 
-X.proximityDistanceThreshold = 0.3; %set the distance from wall at which hand proximity sounds will begin
-X.headProximityThresh = .15;
-X.handProximityThresh = .3;
 % determine the 'in wall' proximity threshold according to how max/msp
 % understands it (midi units, 0-127)
 % the proximity here is 0-1 (once we cross the near wall threshold) so
