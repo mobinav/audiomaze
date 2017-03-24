@@ -119,17 +119,17 @@ normWallThickness = X.mazeinfo.wallThickness / mazeScale;
 normProximityThickness = X.mazeinfo.handProximityThresh*2 / mazeScale;
 
 %% define lines and wall polygons
-[~,X.mazeGeometry.mz_lns]            = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, 0,                      maze(:,R),maze(:,B));
-[X.mazeGeometry.mz_poly_wall,~]      = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normWallThickness,      maze(:,R),maze(:,B));
-[X.mazeGeometry.mz_poly_proximity,~] = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normProximityThickness, maze(:,R),maze(:,B));
+[~,X.mazeGeometry.maze_lines]          = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, 0,                      maze(:,R),maze(:,B), X.mazeinfo.hasExits);
+[X.mazeGeometry.maze_poly_wall,~]      = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normWallThickness,      maze(:,R),maze(:,B), X.mazeinfo.hasExits);
+[X.mazeGeometry.maze_poly_proximity,~] = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normProximityThickness, maze(:,R),maze(:,B), X.mazeinfo.hasExits);
 
 %% debug plot
 if 1
     figure
-    plot(X.mazeGeometry.mz_poly_wall(1,:),X.mazeGeometry.mz_poly_wall(2,:))
+    plot(X.mazeGeometry.maze_poly_wall(1,:),X.mazeGeometry.maze_poly_wall(2,:))
     hold on
-    plot(X.mazeGeometry.mz_poly_proximity(1,:),X.mazeGeometry.mz_poly_proximity(2,:))
-    plot(X.mazeGeometry.mz_lns(:,1:2)',X.mazeGeometry.mz_lns(:,3:4)','linewidth',4)
+    plot(X.mazeGeometry.maze_poly_proximity(1,:),X.mazeGeometry.maze_poly_proximity(2,:))
+    plot(X.mazeGeometry.maze_lines(:,1:2)', X.mazeGeometry.maze_lines(:,3:4)', 'linewidth',4)
     axis equal
 end
 

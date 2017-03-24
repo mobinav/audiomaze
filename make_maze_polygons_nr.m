@@ -63,6 +63,14 @@ for ii=1:length(ptr_right)
     end
 
 end
+
+%% finally, need to flip up/down, since this was written to grow the maze downwards (N->S, from perspective of control room), while our Y coordinate 
+% JRI 3/17
+if ~isempty(mazePolygons) 
+    mazePolygons(2,:) = (col+1) - mazePolygons(2,:); %0.5 -> 5.5, 5.5 -> 0.5 (col+1 because we have that many horizontal walls)
+end
+mazeLines(:,3:4) = (col+1) - mazeLines(:,3:4);
+
 % 
 % for n=1:length(mazeLines(:,1))
 %     line(mazeLines(n, 1:2), mazeLines(n, 3:4), 'linewidth', 3);
@@ -75,7 +83,6 @@ end
 % set(gca,'YDir','reverse')
 % hold off;
 
-
 function [mazePolygons,  mazeLines] = line_and_polygon(x,y, mazePolygons,mazeLines, wallThickness)
 %line(x,y);
 
@@ -84,17 +91,18 @@ for id = 1:(length(x)-1)
     dx = x(id+1) - x(id);
     dy = y(id+1) - y(id);
     
-    % extend both sides by width/2, to make polygons connect
+    % extend both ends by width/2, to make polygons connect
     directionVector = [dx dy];
     directionVector = directionVector / norm(directionVector, 'fro');
     
-    extensionRatio = 1;
+    extensionRatio = 1.01; %slightly longer to ensure overlap for polygon unions
     x(id) = x(id) - wallThickness/2 * extensionRatio * directionVector(1);
     x(id+1) = x(id+1) + wallThickness/2 * extensionRatio * directionVector(1);
     
     y(id) = y(id) - wallThickness/2 * extensionRatio * directionVector(2);
     y(id+1) = y(id+1) + wallThickness/2 * extensionRatio * directionVector(2);
     
+    %add width to the wall
     perpendicularVector = [-dy dx];
     perpendicularVector = wallThickness/2 * perpendicularVector / norm(perpendicularVector, 'fro');
     

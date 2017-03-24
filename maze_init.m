@@ -1,7 +1,7 @@
 function X = maze_init(X)
 % maze_init_rev  intialize the audio maze and peripherals (mocap, lsl)
 %
-%   X = maze_init_rev(maze_lines, n_rows, n_cols, h, w, doVrPlot)
+%   X = maze_init(X)
 %
 % state information returned in structure "X"
 %
@@ -9,20 +9,11 @@ function X = maze_init(X)
 % make_maze_polygons (for a random maze) or make_maze_polygons_nr (for a
 % predetermined maze)
 
-if nargin < 6
-    doVrPlot = false;
-end
 
-X = [];
 X.readFromLSL = true; % ***obsolete--used to switch away from datariver
 %     X.functionHandle = [];
 %     X.samplingRate  = 512;%512;
 %     X.maxNumberOfFramesInAccumulatedData = 6000;% Inf;
-
-X.h = h;
-X.w = w;
-
-X.doVrPlot = doVrPlot;
 
 %     X.overheads = [0,0]; % test, center of room
 %     X.n_overheads = 1;
@@ -75,13 +66,13 @@ X.finished = 0;
 X.nearWallAccumThresh = inf; %if near wall for this # seconds, warn: Feb 2017 JRI: 5->inf to disable
 
 %% make the maze
-X.am = audioMaze(X.h, X.w, n_rows, n_cols, maze_lines);
+X.am = audioMaze(X.mazeinfo.h, X.mazeinfo.w, X.mazeinfo.n_rows, X.mazeinfo.n_cols, X.mazeGeometry.maze_lines, X.mazeGeometry.maze_poly_wall, X.mazeGeometry.maze_poly_proximity);
 
 X.am.plotMaze();
 hold on;
 
 %% vr world stuff
-if X.doVrPlot == true;
+if X.doVrPlot == true
     if isfield(X, 'mocap') && isfield(X.mocap, 'mocapWorld') && ~isempty(X.mocap.mocapWorld)
         close(X.mocap.mocapWorld);
         delete(X.mocap.mocapWorld);

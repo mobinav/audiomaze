@@ -4,7 +4,7 @@ function simpleMaze()
 %% PARAMETER SETTINGS
 % these apply to entire experiment
 
-% maze dimensions
+% maze dimensions (# cells)
 n_rows = 5;
 n_cols = 5;
 
@@ -13,12 +13,13 @@ w = 6;
 h = 6.5;
 % w = 5;
 % h = 5;
+hasExits = false; %whether to include exits in outer walls (NW / SE corners)
 
 %seed (not used in simple maze)
 random_seed = 0;
 
 %do VR plot as well as simple plot?
-doVR = false;
+doVRPlot = false;
 
 %wall thickness parameters (meters)
 wallThickness = 0.1;
@@ -74,7 +75,7 @@ else
     X.trial_number = 0;
 end
 X.is_practice = is_practice; 
-X.doVR = doVR;
+X.doVRPlot = doVRPlot;
 
 %% initialize maze
 fprintf('%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze, X.trial_number, fastif(is_practice,' (PRACTICE)',''));
@@ -86,7 +87,7 @@ X.rewardStructure = copyfields(defaultRewardStructure, X.rewardStructure, {'maze
 X.rewardStructure.rewardReceived = 0.0;
 
 % define maze geometry and LSL i/o
-X.mazeinfo = ji_packstruct({'n_rows','n_cols','w','h','wallThickness','handProximityThresh','headProximityThresh','random_seed'});
+X.mazeinfo = ji_packstruct({'n_rows','n_cols','w','h','wallThickness','handProximityThresh','headProximityThresh','random_seed','hasExits'});
 X = simpleInit(X);
 
 %% run maze
