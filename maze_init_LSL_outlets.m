@@ -1,10 +1,11 @@
 function X = maze_init_LSL_outlets(X)
 % maze_init_LSL_outlets  Initialize LSL connections to max
 %
-%  called by maze_init_rev
+%  called by maze_init
 
 addpath(genpath('C:\DEVEL\labstreaminglayer\LSL\liblsl-Matlab'));
-if isfield(X,'LSL'), X = rmfield(X,'LSL'); end
+%keep reference to lib until inlets/outlets are deleted
+if isfield(X,'LSL'), lib = X.LSL.lib; X = rmfield(X,'LSL'); clear lib; end
 X.LSL.lib = lsl_loadlib();
 
 % while we are at it, initiallize the current clock time

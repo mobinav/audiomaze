@@ -6,6 +6,13 @@ function simpleMaze()
 
 debugMaze = true; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
 
+% phasespace
+% define what phasespace markers we'll use: primetime is suit, but we may
+%  use head/hand for debugging from time to time.
+%phasespaceProfile = 'Audiomaze Suit'; %full suit
+%phasespaceProfile = 'Audiomaze Head7 & Hand';
+phasespaceProfile = 'Audiomaze Head4 & Hand';
+
 % maze dimensions (# cells)
 n_rows = 5;
 n_cols = 5;
@@ -79,21 +86,26 @@ if ~is_practice
 else
     X.trial_number = 0;
 end
+
+%setup other defaults
 X.is_practice = is_practice; 
 X.doVrPlot = doVrPlot;
 X.debugMaze = debugMaze;
+X.phasespaceProfile = phasespaceProfile;
 
 %% initialize maze
-fprintf('%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze, X.trial_number, fastif(is_practice,' (PRACTICE)',''));
+fprintf(2,'%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze, X.trial_number, fastif(is_practice,' (PRACTICE)',''));
 
-% define rewards based on maze choice
+% define rewards based on specific maze choice
 X.rewardStructure.shape = defaultRewardStructure.maze.(X.which_maze).shape;
 X.rewardStructure.mazeReward = defaultRewardStructure.maze.(X.which_maze).mazeReward;
 X.rewardStructure = ji_copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty'});
 X.rewardStructure.rewardReceived = 0.0;
 
-% define maze geometry and LSL i/o
+% maze geometry parameters
 X.mazeinfo = ji_packstruct({'n_rows','n_cols','w','h','wallThickness','handProximityThresh','headProximityThresh','random_seed','hasExits'});
+
+% create maze and initialize LSL I/O
 X = simpleInit(X);
 
 %% run maze

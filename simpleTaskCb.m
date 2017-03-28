@@ -120,9 +120,8 @@ function simpleTaskCb
         
         if 1,
             % 1) pick the last good observation for each marker within this chunk
-            %(this may be a pointless edge case, since it only helps when the
-            %dropout occurs during the chunk, which is probably rare--might as
-            %well look across chunks.
+            %(an edge case, since it only helps when the
+            %dropout occurs during the chunk, which is probably rare?)
             ys = sample(1:4:end-1,:); %N
             zs = sample(2:4:end-1,:); %up
             xs = sample(3:4:end-1,:); %E
@@ -172,6 +171,7 @@ function simpleTaskCb
         lastMarkers(~badCurrentMarkerIds,:) =  X.mocap.markerPosition(~badCurrentMarkerIds,:);
         lastMarkerWasFresh(~badCurrentMarkerIds) = frameNumber;
         
+        %collect all valid hand and head markers
         cnt=1;
         for n=1:length(X.mocap.markers.rightHand)
             if X.mocap.markerPosition(X.mocap.markers.rightHand(n),4)>0
@@ -189,11 +189,9 @@ function simpleTaskCb
         
     end
     
-    % default, in case the whole thing is missing
-    
     % find head and hand locations
+    % default to last good position, in case the whole thing is missing
     % todo: implement John's more robust head positioner
-    % anyway, get the good markers and find the location
     if frameNumber > 1
         if ~isempty(goodHandMarkers)% && frameNumber ~= 0
             handCentroid = nanmedian(goodHandMarkers(:,1:3),1);
@@ -259,7 +257,6 @@ function simpleTaskCb
                     else
                         plot(headCentroid(1),headCentroid(2),'co','tag','markers','markersize',16)
                     end
-
                     set(gca, 'YLim', [-4 4]);
                     set(gca, 'XLim', [-4 4]);
                 end;
@@ -270,22 +267,22 @@ function simpleTaskCb
             [nearestPoints, distances] = X.am.findNearestPoints(handCentroid);
             closestDistanceHand = min(distances(:));
             [closestWallIdHand closestMarkerIdHand] = find(distances == closestDistanceHand);
-            closestWallPointHand = nearestPoints{closestMarkerIdHand(1)}(closestWallIdHand(1),:);
-
-            [nearestPoints, distances] = X.am.findNearestPoints(headCentroid);
-            closestDistanceHead = min(distances(:));
-            [closestWallIdHead closestMarkerIdHead] = find(distances == closestDistanceHead);
-            closestWallPointHead = nearestPoints{closestMarkerIdHead(1)}(closestWallIdHead(1),:);
-
             if length(closestWallIdHand)>1 % at some corners, it will find two points here and go haywire
                 closestWallIdHand = closestWallIdHand(1); % arbitrarily choose the first one
                 closestMarkerIdHand = closestMarkerIdHand(1); % same thing here
             end
-
+            closestWallPointHand = nearestPoints{closestMarkerIdHand(1)}(closestWallIdHand(1),:);
+            
+            %head
+            [nearestPoints, distances] = X.am.findNearestPoints(headCentroid);
+            closestDistanceHead = min(distances(:));
+            [closestWallIdHead closestMarkerIdHead] = find(distances == closestDistanceHead);
             if length(closestWallIdHead)>1 % at some corners, it will find two points here and go haywire
                 closestWallIdHead = closestWallIdHead(1); % arbitrarily choose the first one
                 closestMarkerIdHead = closestMarkerIdHead(1); % same thing here
             end
+            closestWallPointHead = nearestPoints{closestMarkerIdHead(1)}(closestWallIdHead(1),:);
+
 
              % plot the nearest walls and their neighbors
     %         h=findobj(gcf,'tag','closestWall');
@@ -311,21 +308,6 @@ function simpleTaskCb
     %             end
     %         end
 
-            % plot the line from the hand to the nearest wall point
-            figure(X.am.fig_handle);
-            h=findobj(gcf,'tag','wallDistanceBeamHand');
-            if ~isempty(h)
-                delete(h)
-            end
-            plot([handCentroid(1) closestWallPointHand(1)],[handCentroid(2) closestWallPointHand(2)], 'r', 'tag','wallDistanceBeamHand')
-            % plot the line from the head to the nearest wall point
-            h=findobj(gcf,'tag','wallDistanceBeamHead');
-            if ~isempty(h)
-                delete(h)
-            end
-            plot([headCentroid(1) closestWallPointHead(1)],[headCentroid(2) closestWallPointHead(2)], 'b', 'tag','wallDistanceBeamHead')
-
-
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
             % 5. compute the projected audio source point
             projectedAudioPointHand = X.am.findAudioProjection(headCentroid(1:2), closestWallPointHand);
@@ -339,12 +321,15 @@ function simpleTaskCb
             if ~isempty(h)
                 delete(h)
             end
-            plot(projectedAudioPointHand(1), projectedAudioPointHand(2),'ro', 'tag','audio_point', 'markersize',30, 'linewidth', 3);
-            plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',30, 'linewidth', 3);
+            plot(projectedAudioPointHand(1), projectedAudioPointHand(2),'ro', 'tag','audio_point', 'markersize',12, 'linewidth', 3);
+            plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',12, 'linewidth', 3);
 
             % compute the angle for the audio engine
-            handAzimuth = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
-            headAzimuth = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2))); 
+%             handAzimuth = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
+%             headAzimuth = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2)));
+% Check: Atan should be y,x, no?
+            handAzimuth = rad2deg(atan2(projectedAudioPointHand(2), projectedAudioPointHand(1))); 
+            headAzimuth = rad2deg(atan2(projectedAudioPointHead(2), projectedAudioPointHead(1))); 
 
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -370,7 +355,7 @@ function simpleTaskCb
                             timeInWallHand = 0;
                             handCrossed = 0;
                             figure(X.am.fig_handle)
-                            title(sprintf('left wall %d %1.3f', X.inWallCntHand, X.totalTimeInWallHand));
+                            title(sprintf('hand left wall %d %1.3f', X.inWallCntHand, X.totalTimeInWallHand));
                             g=findobj(gcf,'tag','handCrossedWall');
                             if ~isempty(g)
                                 delete(g)
@@ -394,7 +379,7 @@ function simpleTaskCb
                             timeInWallHead = 0;
                             headCrossed = 0;
                             figure(X.am.fig_handle)
-                            title(sprintf('left wall %d %1.3f', X.inWallCntHead, X.totalTimeInWallHead));
+                            title(sprintf('head left wall %d %1.3f', X.inWallCntHead, X.totalTimeInWallHead));
                             g=findobj(gcf,'tag','headCrossedWall');
                             if ~isempty(g)
                                 delete(g)
@@ -434,7 +419,7 @@ function simpleTaskCb
                             if ~isempty(g)
                                 delete(g)
                             end
-                            line(X.am.mazeWalls(closestWallIdHand,1:2), X.am.mazeWalls(closestWallIdHand,3:4), 'linewidth', 10, 'color','k', 'tag', 'handCrossedWall');
+                            line(X.am.mazeWalls(closestWallIdHand,1:2), X.am.mazeWalls(closestWallIdHand,3:4), 'linewidth', 10, 'color','r', 'tag', 'handCrossedWall');
                             %break; % got one, no need to continue
                         end
 
@@ -447,7 +432,7 @@ function simpleTaskCb
                             if ~isempty(g)
                                 delete(g)
                             end
-                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 5, 'color','g', 'tag', 'headCrossedWall');
+                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b--', 'tag', 'headCrossedWall');
                             %break; % got one, no need to continue
                         end
                     end
@@ -464,9 +449,9 @@ function simpleTaskCb
             if ~isInWall
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 7. determine if hand is touching or alarming
-    %             figure(X.am.fig_handle);
-    %             title(sprintf('%1.3f %1.3f', closestDistanceHand, X.handProximityThresh));
-                if  closestDistanceHand > X.handProximityThresh
+                 figure(X.am.fig_handle);
+                 title(sprintf('%1.3f %1.3f', closestDistanceHand, X.mazeinfo.handProximityThresh));
+                if  closestDistanceHand > X.mazeinfo.handProximityThresh
                     valueToSendHand = 999;
 
                     % here we have just left near wall zone, reset flags and send
@@ -490,7 +475,7 @@ function simpleTaskCb
 
                 % we are now near the wall, possible in it or through it
                 else
-                    valueToSendHand = (closestDistanceHand/X.handProximityThresh)^1;
+                    valueToSendHand = (closestDistanceHand/X.mazeinfo.handProximityThresh)^1;
 
                     % first frame near wall
                     if isNearWallHand == 0
@@ -531,7 +516,7 @@ function simpleTaskCb
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % 8. determine if head is touching or alarming
-                if  closestDistanceHead > X.headProximityThresh
+                if  closestDistanceHead > X.mazeinfo.headProximityThresh
                     valueToSendHead = 999;
 
                     % here we have just left near wall zone, reset flags and send
@@ -553,9 +538,9 @@ function simpleTaskCb
                         timeTouchingWallHead = 0;
                     end
 
-                % we are now near the wall, possible in it
+                % we are now near the wall, possibly in it
                 else
-                    valueToSendHead = (closestDistanceHead/X.headProximityThresh)^1;
+                    valueToSendHead = (closestDistanceHead/X.mazeinfo.headProximityThresh)^1;
 
                     % first frame near wall
                     if isNearWallHead == 0
@@ -584,7 +569,37 @@ function simpleTaskCb
                     end
                 end
             end
-
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % 9. update plot, to show beams depending on state
+            % plot the line from the hand to the nearest wall point
+            figure(X.am.fig_handle);
+            h=findobj(gcf,'tag','wallDistanceBeamHand');
+            if ~isempty(h)
+                delete(h)
+            end
+            if isNearWallHand,
+                style='--'; lw = 1;
+            elseif isTouchingWallHand,
+                style='-'; lw = 2;
+            else
+                style=':'; lw = 1;
+            end
+            plot([handCentroid(1) closestWallPointHand(1)],[handCentroid(2) closestWallPointHand(2)], ['r' style], 'linewidth',lw, 'tag','wallDistanceBeamHand')
+            
+            % plot the line from the head to the nearest wall point
+            h=findobj(gcf,'tag','wallDistanceBeamHead');
+            if ~isempty(h)
+                delete(h)
+            end
+            if isNearWallHead,
+                style='--'; lw = 1;
+            elseif isTouchingWallHead,
+                style='-'; lw = 2;
+            else
+                style=':'; lw = 1;
+            end
+            plot([headCentroid(1) closestWallPointHead(1)],[headCentroid(2) closestWallPointHead(2)], ['b' style], 'linewidth',lw, 'tag','wallDistanceBeamHead')
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 9. check to see if we got to the end
