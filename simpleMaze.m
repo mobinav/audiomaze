@@ -4,6 +4,8 @@ function simpleMaze()
 %% PARAMETER SETTINGS
 % these apply to entire experiment
 
+debugMaze = true; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
+
 % maze dimensions (# cells)
 n_rows = 5;
 n_cols = 5;
@@ -19,7 +21,7 @@ hasExits = false; %whether to include exits in outer walls (NW / SE corners)
 random_seed = 0;
 
 %do VR plot as well as simple plot?
-doVRPlot = false;
+doVrPlot = false;
 
 %wall thickness parameters (meters)
 wallThickness = 0.1;
@@ -36,11 +38,14 @@ defaultRewardStructure.maze.B.mazeReward = 1;
 defaultRewardStructure.maze.C.shape = 'U';
 defaultRewardStructure.maze.C.mazeReward = 2;
 
-defaultRewardStructure.maze.D.shape = 'T';
+defaultRewardStructure.maze.D.shape = 'Z';
 defaultRewardStructure.maze.D.mazeReward = 2;
 
-defaultRewardStructure.maze.E.shape = '+';
-defaultRewardStructure.maze.E.mazeReward = 4;
+defaultRewardStructure.maze.E.shape = 'T';
+defaultRewardStructure.maze.E.mazeReward = 2;
+
+defaultRewardStructure.maze.F.shape = '+';
+defaultRewardStructure.maze.F.mazeReward = 4;
 
 %set up general rewards and penalties
 defaultRewardStructure.mazeCompletedBonus = 1; %for exploring entire maze (reaching all goal tokens)
@@ -75,7 +80,8 @@ else
     X.trial_number = 0;
 end
 X.is_practice = is_practice; 
-X.doVRPlot = doVRPlot;
+X.doVrPlot = doVrPlot;
+X.debugMaze = debugMaze;
 
 %% initialize maze
 fprintf('%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze, X.trial_number, fastif(is_practice,' (PRACTICE)',''));
@@ -83,7 +89,7 @@ fprintf('%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze, X
 % define rewards based on maze choice
 X.rewardStructure.shape = defaultRewardStructure.maze.(X.which_maze).shape;
 X.rewardStructure.mazeReward = defaultRewardStructure.maze.(X.which_maze).mazeReward;
-X.rewardStructure = copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty'});
+X.rewardStructure = ji_copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty'});
 X.rewardStructure.rewardReceived = 0.0;
 
 % define maze geometry and LSL i/o

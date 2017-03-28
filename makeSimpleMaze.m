@@ -16,9 +16,16 @@ function X = makeSimpleMaze(X)
 % x x x
 %     x
 %     x
+%
+%   set X.debugMaze = true for useful diagnostic plot
 
+%maze definitions are made with NW corner as 'origin' and grid numbered by
+%rows. token locations are also row/column with respect to upper left
+%corner.
+% NB actual x/y coordinates have origin in SW corner--it's the same old
+% plotting vs. matrix/reading convention: xy vs ij.
+%
 % for encoding system details, see mazeBuilder.m
-% briefly, grid is numbered starting in upper left corner, by rows
 %   1 2 3 4 5
 %   6 7 8 9 10
 %
@@ -28,6 +35,11 @@ function X = makeSimpleMaze(X)
 % this happens to be the system our original random maze-building code
 % used, so we have just kept it
 
+%all of these depend on a 5x5 maze, so check to make sure request is such
+if (X.mazeinfo.n_rows ~= 5) || (X.mazeinfo.n_rows ~= 5)
+    error('Simple maze only defined for 5x5 grid.')
+end
+
 maze = zeros(X.mazeinfo.n_rows * X.mazeinfo.n_cols, 2);
 
 %token_locs are row,column with origin in upper left corner!
@@ -35,6 +47,7 @@ maze = zeros(X.mazeinfo.n_rows * X.mazeinfo.n_cols, 2);
 % row,column matrix order (origin upper left corner)
 % upper left is NW corner of room. Top row is N, bottom row S; left column
 % is W, rightmost is E...
+% the actual x/y coordinates have origin in SW corner to match mobilab.
 
 %column indexes for shorthand and readibility
 R=1;
@@ -70,21 +83,13 @@ switch upper(X.which_maze)
   
   % Z shape (not used in initial experiment)
   case 'D'
-    maze(1,2)=1;
-    maze(2,2)=1;
-    maze(3,1)=1;
-    maze(7,1)=1;
-    maze(8,1)=1;
-    maze(12,1)=1;
-    maze(13,1)=1;
-    maze(14,2)=1;
-    maze(15,2)=1;
-    maze(17,1)=1;
-    maze(18,2)=1;
-    maze(19,2)=1;
-    maze(20,2)=1;
-    token_locs = [1,1; ... % start square
-        4,5]; % end square
+      maze([1 6],R) = 1;
+      maze([7 8 9],B) = 1;
+      maze([11 12 13],B) = 1;
+      maze([18 23],R) = 1;
+      maze([14 19 24],R) = 1;
+    token_locs = [5,4; ... % start square
+        1,1]; % end square
 
   % T shape
   case 'E'
@@ -124,12 +129,26 @@ normProximityThickness = X.mazeinfo.handProximityThresh*2 / mazeScale;
 [X.mazeGeometry.maze_poly_proximity,~] = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normProximityThickness, maze(:,R),maze(:,B), X.mazeinfo.hasExits);
 
 %% debug plot
-if 1
+if X.debugMaze,
     figure
     plot(X.mazeGeometry.maze_poly_wall(1,:),X.mazeGeometry.maze_poly_wall(2,:))
     hold on
     plot(X.mazeGeometry.maze_poly_proximity(1,:),X.mazeGeometry.maze_poly_proximity(2,:))
     plot(X.mazeGeometry.maze_lines(:,1:2)', X.mazeGeometry.maze_lines(:,3:4)', 'linewidth',4)
+    %show grid squares
+    for k = 1:25,
+       r = floor((k-1)/5) + 1;
+       c = k - (r-1)*5;
+       text(c, (X.mazeinfo.n_rows+1)-r, num2str(k),'horizontalalignment','center','verticalalignment','middle')
+    end
+    text(-0.25,5.75,'NW')
+    hg = plot(X.mazeGeometry.token_locs(:,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(:,1),'rd','markersize',36);
+    hs = plot(X.mazeGeometry.token_locs(1,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(1,1),'gd','markersize',36);
+    legend([hs hg], 'start','goal')
+    title(upper(X.which_maze))
+    axis([0 X.mazeinfo.n_cols+1 0 X.mazeinfo.n_rows + 1])
     axis equal
+    disp('Debug Maze Plot: control c to quit, return to continue to run the maze')
+    pause
 end
 
