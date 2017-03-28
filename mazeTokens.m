@@ -37,6 +37,17 @@ classdef mazeTokens
             panel_h = maze.roomDims(1)/rows;
             panel_w = maze.roomDims(2)/cols;
             
+            %convert from i,j to x,y (reverse row/y)
+            locs(:,1) = (rows+1) - locs(:,1);
+            
+            %normalize, center and scale to room dimensions
+            % NB, swapping coords completes ij->xy conversion
+            cx = mean([1 cols]); cy = mean([1 rows]);
+            locs_norm(:,1) = maze.roomDims(2) * (locs(:,2)-cx) / cols;
+            locs_norm(:,2) = maze.roomDims(1) * (locs(:,1)-cy) / rows;
+            
+            obj.mocapLocs = locs_norm;
+            obj.wired = zeros(1,size(locs,1));
             
 %             obj.endpoints(1,:) = [(maze.roomDims(2)*-.5+panel_w*.5), maze.roomDims(1)*-.5+panel_h*.5];
 %             % exit location
@@ -44,18 +55,17 @@ classdef mazeTokens
 % 
 %             obj.endpoints_hit = 0;
           
-            
             %obj.mocapLocs
-            locs_norm(:,2) = (((locs(:,1)/rows) - 1/rows) - .5)* maze.roomDims(1); % check for this with assymetrical dimensions 
-            locs_norm(:,1) = (((locs(:,2)/cols) - 1/cols) - .5)* maze.roomDims(2); 
-
-            for n=1:length(locs(:,1))
-                n;
-                tmp = [locs_norm(n,1) + panel_w*.5, locs_norm(n,2) + panel_h*.5];
-                obj.mocapLocs(n,:) = tmp;
-                obj.count = obj.count + 1;
-                obj.wired(n) = 0; % set to disconnected
-            end      
+%             locs_norm(:,2) = (((locs(:,1)/rows) - 1/rows) - .5)* maze.roomDims(1); % check for this with assymetrical dimensions 
+%             locs_norm(:,1) = (((locs(:,2)/cols) - 1/cols) - .5)* maze.roomDims(2); 
+% 
+%             for n=1:length(locs(:,1))
+%                 n;
+%                 tmp = [locs_norm(n,1) + panel_w*.5, locs_norm(n,2) + panel_h*.5];
+%                 obj.mocapLocs(n,:) = tmp;
+%                 obj.count = obj.count + 1;
+%                 obj.wired(n) = 0; % set to disconnected
+%             end      
             % add endpoints to wired list
             
 %             obj.end2_idx = length(locs(:,1))+1;
@@ -66,11 +76,8 @@ classdef mazeTokens
 %                 obj.count = obj.count + 1;
 %                 obj.wired(n) = 1; % set to connected
 %             end  
-            obj.active = zeros(size(obj.wired)); % set to innactive
+            obj.active = zeros(size(obj.wired)); % set to inactive
             
-  
-        
-
             if ~isempty(map)
                 % tack these on to the beginning and ending tokens
                 for n=1:length(map(:,1)) % number of rows

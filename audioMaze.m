@@ -28,7 +28,7 @@ classdef audioMaze      % audio maze object
         %         (rm_height, rm_width, n_rows, n_cols, maze_lines)%
         function obj = audioMaze(rm_height, rm_width, n_rows, n_cols, maze_lines, maze_poly_wall, maze_poly_proximity)%(rm_height, rm_width, n_rows, n_cols, style, rndmSeed)
             
-            obj.roomDims = [rm_height rm_width];
+            obj.roomDims = [rm_height rm_width]; %NB: y, x (ij order)
             obj.mbyn = [n_rows n_cols];
             
             % first convert maze into real-space mobilab coordinates
