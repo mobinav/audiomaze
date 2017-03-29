@@ -109,15 +109,17 @@ function simpleTaskCb
     %   'good' sample, if any -- at best an occasional gain
     %   2) keep track of markers that were good the last maze frame and use
     %   these to 'fill in' any markers missing from this frame
+    
+    frameNumber = frameNumber+1;
+            
     goodHandMarkers=[];
     goodHeadMarkers=[];
     [sample, stamps] = X.LSL.phasespace.inlet.pull_chunk();
 
     if ~isempty(sample)    
-        frameNumber = frameNumber+1;
-        %here we convert phasespace coords to a more conventional system
+        %convert phasespace coords to a more conventional system
         %where X = East, Y = North, Z = up--makes most sense sitting in control room
-        
+        %phasespace oriented to x=north, y=up, z=east
         if 1,
             % 1) pick the last good observation for each marker within this chunk
             %(an edge case, since it only helps when the
@@ -186,10 +188,9 @@ function simpleTaskCb
                 cnt=cnt+1;
             end
         end
-        
-    end
+    end %if sample
     
-    % find head and hand locations
+    %% find head and hand locations
     % default to last good position, in case the whole thing is missing
     % todo: implement John's more robust head positioner
     if frameNumber > 1
@@ -233,6 +234,7 @@ function simpleTaskCb
     %        set(gca,'fontsize',14);
     %     end
 
+    %%
         if frameNumber >= 5 % let it warm up a bit before rolling
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -325,12 +327,11 @@ function simpleTaskCb
             plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',12, 'linewidth', 3);
 
             % compute the angle for the audio engine
-%             handAzimuth = rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
-%             headAzimuth = rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2)));
-% Check: Atan should be y,x, no?
-            handAzimuth = rad2deg(atan2(projectedAudioPointHand(2), projectedAudioPointHand(1))); 
-            headAzimuth = rad2deg(atan2(projectedAudioPointHead(2), projectedAudioPointHead(1))); 
-
+            handAzimuth = -rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2))); 
+            headAzimuth = -rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2)));
+            % need to sort this out, but is correct for now. Somehow MAX
+            % and maze azimuths are inverses of each other. Not sure why
+            % it's 1,2 instead of 2,1 (y,x)
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 6. determine if we are through the wall or not or if we got back   
@@ -657,7 +658,7 @@ function simpleTaskCb
                                 X.LSL.emitHEDtag(HEDtag, timeIs);
                             end
                             canFlourish = 0;
-                            stop_maze();
+                            stop_maze(X);
 
                         end
                     end
@@ -698,7 +699,10 @@ function simpleTaskCb
             X.LSL.MaxMSP.send_headwall(valueToSendHead, headAzimuth, 'wallSound');
 
             % emit the behavioral data for this frame
-            frameData = [headCentroid, handCentroid, headAzimuth, handAzimuth, closestWallPointHead, closestWallPointHand];
+            %'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y',...
+            %'handCentroid_x','handCentroid_y','handAzimuth','handDistance','closestWallPointHand_x','closestWallPointHand_y'}
+            frameData = [headCentroid(1:2), headAzimuth, closestDistanceHead, closestWallPointHead(1:2),...
+                handCentroid(1:2), handAzimuth, closestDistanceHand, closestWallPointHand(1:2)];
             X.LSL.emitBehaviorFrame(frameData, timeIs);
 
         end % if frameNumber > 2

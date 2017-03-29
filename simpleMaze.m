@@ -1,5 +1,6 @@
 function simpleMaze()
 % function for initiating a simple maze session
+close all
 
 %% PARAMETER SETTINGS
 % these apply to entire experiment
