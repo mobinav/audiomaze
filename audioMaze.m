@@ -259,6 +259,7 @@ classdef audioMaze      % audio maze object
             % actually, now we do use centroid (median, actually), but this
             % has some unwanted side effects when markers drop out
             
+            %TODO: much of this could be done more efficiently
             
             distances = zeros(length(obj.mazeWalls),length(points(:,1)));
             

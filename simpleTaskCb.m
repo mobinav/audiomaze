@@ -433,7 +433,7 @@ function simpleTaskCb
                             if ~isempty(g)
                                 delete(g)
                             end
-                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b--', 'tag', 'headCrossedWall');
+                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b','linestyle','--', 'tag', 'headCrossedWall');
                             %break; % got one, no need to continue
                         end
                     end
@@ -450,7 +450,7 @@ function simpleTaskCb
             if ~isInWall
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % 7. determine if hand is touching or alarming
-                 figure(X.am.fig_handle);
+                 figure(X.am.fig_handle); %this profiled exceptionally slow--real?
                  title(sprintf('%1.3f %1.3f', closestDistanceHand, X.mazeinfo.handProximityThresh));
                 if  closestDistanceHand > X.mazeinfo.handProximityThresh
                     valueToSendHand = 999;
@@ -580,7 +580,7 @@ function simpleTaskCb
                 delete(h)
             end
             if isNearWallHand,
-                style='--'; lw = 1;
+                style='-'; lw = 2;
             elseif isTouchingWallHand,
                 style='-'; lw = 2;
             else
@@ -594,7 +594,7 @@ function simpleTaskCb
                 delete(h)
             end
             if isNearWallHead,
-                style='--'; lw = 1;
+                style='-'; lw = 2;
             elseif isTouchingWallHead,
                 style='-'; lw = 2;
             else
@@ -696,7 +696,7 @@ function simpleTaskCb
             % send the values to the audio engine
             X.LSL.MaxMSP.send_noise_freq(noiseFreq, '');
             X.LSL.MaxMSP.send_hand_proximity(valueToSendHand, handAzimuth, 'wallSound');
-            X.LSL.MaxMSP.send_headwall(valueToSendHead, headAzimuth, 'wallSound');
+            X.LSL.MaxMSP.send_headwall(valueToSendHead, headAzimuth, 'wallSound'); %this profiles much slower, why?
 
             % emit the behavioral data for this frame
             %'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y',...

@@ -3,7 +3,8 @@ global X;
 
 fprintf(2,'Stopping maze...')
 if ~isempty(timerfindall)
-    stop(timerfindall);
+    stop(timerfind('tag','accumulatorTimer'));
+    delete(timerfind('tag','accumulatorTimer'));
     fprintf(2,'Disable timer...');
 end
 

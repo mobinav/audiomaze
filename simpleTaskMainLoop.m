@@ -13,15 +13,17 @@ if DEBUG
         tic
         simpleTaskCb
         ttt=toc;
-        fprintf('DEBUG! %.2f ms\n',ttt*1000)
+        fprintf(' DEBUG! %.2f ms\n',ttt*1000)
     end
 else
     %use this for normal running
     if isempty(timerfind('tag','accumulatorTimer'))
         %     accumulatorTimer = timer('TimerFcn','try,tic;simpleTaskCb;toc;catch,lasterr,end',...
         %         'StartDelay',0,'ExecutionMode','fixedSpacing','Period',.02,'tag','accumulatorTimer');
-        accumulatorTimer = timer('TimerFcn','tic;simpleTaskCb;ttt=toc;fprintf(''%.2f ms\n'',ttt*1000)','ErrorFcn','disp(''Whoops! To debug go to SimpleMaze and set debugMaze=true.''); keyboard',...
+        accumulatorTimer = timer('TimerFcn','tic;simpleTaskCb;ttt=toc;fprintf('' %.2f ms\n'',ttt*1000)','ErrorFcn','disp(''Whoops! To debug go to SimpleMaze and set debugMaze=true.''); keyboard',...
             'StartDelay',0,'ExecutionMode','fixedSpacing','Period',.02,'tag','accumulatorTimer');
+        %profile on % discovered wasted calls to pdist in
+        %audioMaze.findNearestPoints. Other findings make less sense.
         start(accumulatorTimer);
     else
         warning('Existing timer found, doing nothing. Try stop_maze')
