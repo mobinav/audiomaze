@@ -259,44 +259,29 @@ classdef audioMaze      % audio maze object
             % actually, now we do use centroid (median, actually), but this
             % has some unwanted side effects when markers drop out
             
-            %TODO: much of this could be done more efficiently
+            %TODO: much of this could be done more efficiently. Removed
+            %some unnecessary code, but this loop could be vectorized, too
             
             distances = zeros(length(obj.mazeWalls),length(points(:,1)));
             
             for m = 1:length(points(:,1))
                 nearestPoints{m} = zeros(length(obj.mazeWalls),2);
-                
-                
+  
                 for n=1:length(obj.mazeWalls)
                     if points(m,3) == -100 % invalid point, ignore it
                         distances(n,m) = 9999999; % huge number
                     else
-                        
-                        pd1 = pdist([points(m,1:2); obj.mazeWalls(n,1:2:3)],'euclidean');
-                        pd2 = pdist([points(m,1:2); obj.mazeWalls(n,2:2:4)],'euclidean');
-                        if pd1<=pd2 % ensure that we are finding the nearest far point on the wall
-                            A = obj.mazeWalls(n,1:2:3);
-                            B = obj.mazeWalls(n,2:2:4);
-                            distances(n,m) = pd1;
-                        else
-                            B = obj.mazeWalls(n,1:2:3);
-                            A = obj.mazeWalls(n,2:2:4);
-                            distances(n,m) = pd2;
-                        end
-                        
+                        A = obj.mazeWalls(n,1:2:3);
+                        B = obj.mazeWalls(n,2:2:4);
                         AB = B-A; % vector from A to B
                         normAB = norm(AB);
                         k = AB/normAB; % normal vector
                         t = dot((points(m,1:2) - A), k)/normAB;
-                        if t<=0
-                            nearestPoints{m}(n,1:2) = A;
-                        elseif t>=1.0
-                            nearestPoints{m}(n,1:2) = A;
-                        else
-                            nearestPoints{m}(n,1:2) = A + t*AB;
-                            distances(n,m) = pdist([points(m,1:2); nearestPoints{m}(n,1:2)], 'euclidean');
+                        if t<=0 || t>1.0, %this shouldn't happen, but if it does, default to midpoint of line
+                            t=0.5;
                         end
-                        
+                        nearestPoints{m}(n,1:2) = A + t*AB;
+                        distances(n,m) = pdist([points(m,1:2); nearestPoints{m}(n,1:2)], 'euclidean');
                     end
                 end
             end
