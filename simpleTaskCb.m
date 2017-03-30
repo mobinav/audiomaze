@@ -433,7 +433,11 @@ function simpleTaskCb
                             if ~isempty(g)
                                 delete(g)
                             end
+<<<<<<< HEAD
                             line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b','linestyle','--', 'tag', 'headCrossedWall');
+=======
+                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b','linestyle','--','tag', 'headCrossedWall');
+>>>>>>> origin/master
                             %break; % got one, no need to continue
                         end
                     end
