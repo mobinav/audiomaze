@@ -6,6 +6,7 @@ close all
 % these apply to entire experiment
 
 debugMaze = true; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
+infiniteWalls = true; %if participant goes through a wall, keep warning regardless of how far they go
 
 % phasespace
 % define what phasespace markers we'll use: primetime is suit, but we may
@@ -92,6 +93,7 @@ end
 X.is_practice = is_practice; 
 X.doVrPlot = doVrPlot;
 X.debugMaze = debugMaze;
+X.infiniteWalls = infiniteWalls;
 X.phasespaceProfile = phasespaceProfile;
 
 %% initialize maze
