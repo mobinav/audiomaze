@@ -8,7 +8,7 @@ if ~isempty(timerfindall)
     fprintf(2,'Disable timer...');
 end
 
-if isfield(X,'LSL'), 
+if isfield(X,'LSL')
     X.LSL.MaxMSP.play_sound(2,0,0,0,0,'OFF');
     X.LSL.MaxMSP.play_sound(1,0,0,0,0,'OFF');
     X.LSL.MaxMSP.play_sound(3,0,0,0,0,'OFF');
