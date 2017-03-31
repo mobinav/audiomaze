@@ -340,8 +340,8 @@ if frameNumber > 1
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % 5. compute the projected audio source point
         
-        projectedAudioPointHand = X.am.findAudioProjection(headCentroid(1:2), closestWallPointHand);
-        projectedAudioPointHead = X.am.findAudioProjection(headCentroid(1:2), closestWallPointHead);
+        projectedAudioPointHand = X.am.findAudioProjection(S.head.centroid(1:2), S.hand.closestWallPoint);
+        projectedAudioPointHead = X.am.findAudioProjection(S.head.centroid(1:2), S.head.closestWallPoint);
         projectedAudioPointHand(3) = 0;
         projectedAudioPointHead(3) = 0;
         
@@ -364,7 +364,7 @@ if frameNumber > 1
         % we don't want head point to flip when head goes through wall,
         % so negate headAzimuth if through wall (I think that will
         % work)
-        if headCrossed
+        if S.head.crossedWall
             headAzimuth = -headAzimuth;
         end
         
@@ -374,10 +374,10 @@ if frameNumber > 1
         % determine the pitch of the wall touch sound
         noiseFreq = 1;
         % we are near an outer wall
-        if closestWallIdHand < 5
+        if S.hand.closestWallId < 5
             noiseFreq = 1;
             % check if the hand is near the end of disconnected wall point
-        elseif X.am.isPointFloating(closestWallPointHand)
+        elseif X.am.isPointFloating(S.hand.closestWallPoint)
             noiseFreq = 2;
         else
             noiseFreq = 3;
@@ -385,8 +385,8 @@ if frameNumber > 1
         
         % send the values to the audio engine
         X.LSL.MaxMSP.send_noise_freq(noiseFreq, '');
-        X.LSL.MaxMSP.send_hand_proximity(valueToSendHand, handAzimuth, 'wallSound');
-        X.LSL.MaxMSP.send_headwall(valueToSendHead, headAzimuth, 'wallSound'); %this profiles much slower, why?
+        X.LSL.MaxMSP.send_hand_proximity(S.hand.valueToSend, handAzimuth, 'wallSound');
+        X.LSL.MaxMSP.send_headwall(S.head.valueToSend, headAzimuth, 'wallSound'); %this profiles much slower, why?
         
         % emit the behavioral data for this frame
         %'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y',...
@@ -403,7 +403,7 @@ if frameNumber > 1
         %stateVector = [handInProximity handInWall handCrossedWall headInProximity headInWall headCrossedWall];
         %changeState = xor(stateVector, lastS.stateVector);
         
-        for part = {'hand','head')
+        for part = {'hand','head'}
             % enter Proximity - increase count, start timer emit event
             if (S.(part{:}).inProximity && ~lastS.(part{:}).inProximity)
                 X.wallTouchScores.(part{:}).numProximityTouches = X.wallTouchScores.(part{:}).numProximityTouches + 1;
@@ -452,7 +452,7 @@ if frameNumber > 1
         % plot the line from the hand to the nearest wall point
         figure(X.am.fig_handle);
         for part = {'hand','head'}
-            delete(findobj(gcf,'tag',[part{:} 'WallDistanceBeam']);
+            delete(findobj(gcf,'tag',[part{:} 'WallDistanceBeam']));
             if S.(part{:}).inProximity
                 style='-'; lw = 2;
             elseif S.(part{:}).inWall
