@@ -19,10 +19,10 @@ n_rows = 5;
 n_cols = 5;
 
 %maze physical size (meters)
-w = 6;
-h = 6.5;
-% w = 5;
-% h = 5;
+% w = 6;
+% h = 6.5;
+w = 5;
+h = 5;
 hasExits = false; %whether to include exits in outer walls (NW / SE corners)
 
 %seed (not used in simple maze)
