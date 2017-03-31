@@ -2,6 +2,10 @@ function simpleTaskCb
 % simpleTaskCb callback function that is the main loop of the simpleTask
 % implementation of the audiomaze
 
+parts = {'hand','head'};
+partColor.hand = 'r';  %plot colors for hand and head
+partColor.head = 'b';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 0. initialize variables
 % the 'everything' structure
@@ -88,19 +92,33 @@ if isempty(frameNumber)
     blank.totalProxmityDuration = 0;
     blank.wallDuration = 0;
     blank.totalWallDuration = 0;
-    X.wallTouchScores.hand = blank;
-    X.wallTouchScores.head = blank;
+    X.performance.wallTouchScores.hand = blank;
+    X.performance.wallTouchScores.head = blank;
+    X.performance.maxEarning = 0;
+    X.performance.earned = 0;
+    X.performance.lost = 0;
+    X.performance.foundAllTokens = false;
+    X.performance.nFoundTokens = 0;
     clear blank
     %copy over some needed values
     X.mazeinfo.hand.proximityThresh = X.mazeinfo.handProximityThresh;
     X.mazeinfo.hand.in_wall_prox    = X.hand_in_wall_prox;
     X.mazeinfo.head.proximityThresh = X.mazeinfo.headProximityThresh;
     X.mazeinfo.head.in_wall_prox    = X.head_in_wall_prox;
-    
 end
 
 %set up our current state vector, make it easier to iterate head/hand
+clear B
 B.goodMarkers = [];
+B.centroid = [0 0 0];
+B.closestDistance = inf;
+B.closestWallId = [];
+B.closestWallPoint = [];
+B.closestMarkerId = [];
+B.inProximity = false;
+B.inWall = false;
+B.crossedWall = false;
+B.valueToSend = 999;
 S.hand = B;
 S.head = B;
 
@@ -221,12 +239,12 @@ end %if sample
 % default to last good position, in case the whole thing is missing
 % todo: implement John's more robust head positioner
 if frameNumber > 1
-    for part = {'hand','head'},
-        if ~isempty(S.(part).goodMarkers),
-            S.(part).centroid = nanmedian(S.(part).goodMarkers(:,1:3),1);
+    for part = {'hand','head'}
+        if ~isempty(S.(part{:}).goodMarkers)
+            S.(part{:}).centroid = nanmedian(S.(part{:}).goodMarkers(:,1:3),1);
         else
-            S.(part).centroid = lastS.(part).centroid;
-            fprintf(2,'No %s\n', part);
+            S.(part{:}).centroid = lastS.(part{:}).centroid;
+            fprintf(2,'No %s\n', part{:});
         end
     end
     
@@ -241,17 +259,17 @@ if frameNumber > 1
             fprintf(' %d', sum(goodMarkerIds))
             
             % do the initial plotting
-            if X.mocap.doSimplePlot,
+            if X.mocap.doSimplePlot
                 h=findobj(gcf,'tag','markers');
                 delete(h)
                 
-                if ~isempty(S.hand.goodMarkers),
+                if ~isempty(S.hand.goodMarkers)
                     plot(S.hand.goodMarkers(:,1), S.hand.goodMarkers(:,2),'r.','tag','markers','markersize',20);
                 else
                     plot(S.hand.centroid(1),S.hand.centroid(2),'mo','tag','markers','markersize',16)
                 end
                 
-                if ~isempty(S.head.goodMarkers),
+                if ~isempty(S.head.goodMarkers)
                     plot(S.head.goodMarkers(:,1), S.head.goodMarkers(:,2),'.','tag','markers','markersize',20);
                 else
                     plot(S.head.centroid(1),S.head.centroid(2),'co','tag','markers','markersize',16)
@@ -262,15 +280,15 @@ if frameNumber > 1
         end
         
         % find the nearest wall and the nearest point on that wall to the
-        for part = {'hand','head'},
-            [nearestPoints, distances] = X.am.findNearestPoints(S.(part).centroid);
-            S.(part).closestDistance = min(distances(:));
-            [S.(part).closestWallId, S.(part).closestMarkerId] = find(distances == S.(part).closestDistance);
-            if length(S.(part).closestWallId)>1 % at some corners, it will find two points here and go haywire
-                S.(part).closestWallId   = S.(part).closestWallId(1); % arbitrarily choose the first one
-                S.(part).closestMarkerId = S.(part).closestMarkerId(1); % same thing here
+        for part = {'hand','head'}
+            [nearestPoints, distances] = X.am.findNearestPoints(S.(part{:}).centroid);
+            S.(part{:}).closestDistance = min(distances(:));
+            [S.(part{:}).closestWallId, S.(part{:}).closestMarkerId] = find(distances == S.(part{:}).closestDistance);
+            if length(S.(part{:}).closestWallId)>1 % at some corners, it will find two points here and go haywire
+                S.(part{:}).closestWallId   = S.(part{:}).closestWallId(1); % arbitrarily choose the first one
+                S.(part{:}).closestMarkerId = S.(part{:}).closestMarkerId(1); % same thing here
             end
-            S.(part).closestWallPoint = nearestPoints{S.(part).closestMarkerId}(S.(part).closestWallId,:);
+            S.(part{:}).closestWallPoint = nearestPoints{S.(part{:}).closestMarkerId}(S.(part{:}).closestWallId,:);
         end
         
         
@@ -288,28 +306,29 @@ if frameNumber > 1
         %negative, call the valueToSend = 0;
         
         % find distance and assign MAX control value as well as state
-        for part = {'hand','head'},
-            handToWall = S.hand.centroid(1:2) - S.(part).closestWallPoint;
-            headToWall = S.head.centroid(1:2) - S.(part).closestWallPoint;
+        for part = {'hand','head'}
+            handToWall = S.hand.centroid(1:2) - S.(part{:}).closestWallPoint;
+            headToWall = S.head.centroid(1:2) - S.(part{:}).closestWallPoint;
             crossed = sign(dot(handToWall, headToWall));
-            S.(part).crossedWall = crossed < 0;
-            S.(part).closestDistance = S.(part).closestDistance * crossed; %becomes negative if crossed over
+            S.(part{:}).crossedWall = crossed < 0;
+            S.(part{:}).closestDistance = S.(part{:}).closestDistance * crossed; %becomes negative if crossed over
             %check if closestDistanceHand ~ norm(handToWall)
-            if S.(part).crossedWall, %if crossed through, we don't care how far
-                S.(part).valueToSend = 0; %implements 'infinite thickness wall'
-                S.(part).inProximity = true;
-                S.(part).inWall      = true;
+            %if crossed through, we don't care how far: implements 'infinite thickness wall'
+            if S.(part{:}).crossedWall && X.infinteWalls
+                S.(part{:}).valueToSend = 0;
+                S.(part{:}).inProximity = true;
+                S.(part{:}).inWall      = true;
             else
-                if S.(part).closestDistance > X.mazeinfo.(part).proximityThresh, %away from wall
-                    S.(part).valueToSend = 999;
-                    handInProximity = false;
+                if abs(S.(part{:}).closestDistance) > X.mazeinfo.(part{:}).proximityThresh %far away from wall, sounds off (abs needed in case infiniteWalls=false
+                    S.(part{:}).valueToSend = 999;
+                    S.(part{:}).inProximity = false;
                 else %near wall--in proximity and possibly in wall
-                    S.(part).valueToSend = (S.(part).closestDistance/X.mazeinfo.(part).proximityThresh)^1;
-                    S.(part).inProximity = true;
-                    if (1-valueToSendHand) > X.hand_in_wall_prox,
-                        S.(part).inWall = true;
+                    S.(part{:}).valueToSend = abs(S.(part{:}).closestDistance/X.mazeinfo.(part{:}).proximityThresh)^1;
+                    S.(part{:}).inProximity = true;
+                    if (1-valueToSendHand) > X.hand_in_wall_prox
+                        S.(part{:}).inWall = true;
                     else
-                        S.(part).inWall = false;
+                        S.(part{:}).inWall = false;
                     end
                 end
             end %if crossed wall
@@ -345,381 +364,11 @@ if frameNumber > 1
         % we don't want head point to flip when head goes through wall,
         % so negate headAzimuth if through wall (I think that will
         % work)
-        if headCrossed,
+        if headCrossed
             headAzimuth = -headAzimuth;
         end
         
-        
-        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % now make some decisions based on state transitions, emitting
-        % proper markers and so on
-        
-        %stateVector = [handInProximity handInWall handCrossedWall headInProximity headInWall headCrossedWall];
-        %changeState = xor(stateVector, lastS.stateVector);
-        
-        %HAND
-        %TODO: loop
-        % enter Proximity - increase count, start timer emit event
-        if (S.hand.inProximity && ~lastS.hand.inProximity),
-            X.wallTouchScores.hand.numProximityTouches = X.wallTouchScores.hand.numProximityTouches + 1;
-            X.wallTouchScores.hand.proximityDuration = 0;
-        end
-        
-        % leave Proximity - emit event (with timer value), reset timer
-        
-        % enter Wall
-        
-        % leave Wall
-        
-        % go through wall
-        
-        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % 6. determine if we are through the wall or not or if we got back
-        C = handCentroid;
-        D = headCentroid;
-        
-        % if we were in, check to see if we got out
-        if isInWall
-            timeInWallHand = timeInWallHand + timeDiff;
-            keyboard
-            
-            % the hand went accross first, so it needs to go back
-            if handCrossed
-                %valueToSendHand = 0;
-                for n=1:length(X.am.hasNeighbors{lastWallIdHand})
-                    A = X.am.mazeWalls(X.am.hasNeighbors{lastWallIdHand}(n),1:2:3);
-                    B = X.am.mazeWalls(X.am.hasNeighbors{lastWallIdHand}(n),2:2:4);
-                    
-                    if whichSide(C, A, B) ~= whichSide(lastHandCentroid, A, B)
-                        isInWall = 0;
-                        X.totalTimeInWallHand = X.totalTimeInWallHand + timeInWallHand;
-                        X.inWallCntHand = X.inWallCntHand+1;
-                        timeInWallHand = 0;
-                        handCrossed = 0;
-                        figure(X.am.fig_handle)
-                        title(sprintf('hand left wall %d %1.3f', X.inWallCntHand, X.totalTimeInWallHand));
-                        g=findobj(gcf,'tag','handCrossedWall');
-                        if ~isempty(g)
-                            delete(g)
-                        end
-                        break;
-                        %%%%%% out of wall hand HED marker goes here %%%%%%
-                    end
-                end
-            end
-            
-            if headCrossed
-                %valueToSendHead = 0;
-                for n=1:length(X.am.hasNeighbors{lastWallIdHead})
-                    A = X.am.mazeWalls(X.am.hasNeighbors{lastWallIdHead}(n),1:2:3);
-                    B = X.am.mazeWalls(X.am.hasNeighbors{lastWallIdHead}(n),2:2:4);
-                    
-                    if whichSide(D, A, B) ~= whichSide(lastHeadCentroid, A, B)
-                        isInWall = 0;
-                        X.totalTimeInWallHead = X.totalTimeInWallHead + timeInWallHead;
-                        X.inWallCntHead = X.inWallCntHead+1;
-                        timeInWallHead = 0;
-                        headCrossed = 0;
-                        figure(X.am.fig_handle)
-                        title(sprintf('head left wall %d %1.3f', X.inWallCntHead, X.totalTimeInWallHead));
-                        g=findobj(gcf,'tag','headCrossedWall');
-                        if ~isempty(g)
-                            delete(g)
-                        end
-                        break;
-                        %%%%%% out of wall hand HED marker goes here %%%%%%
-                    end
-                end
-            end
-            
-        end
-        
-        % if we were not in a wall, check to see if we are now
-        if ~isInWall
-            
-            % check for hand crossing
-            for n=1:length(X.am.hasNeighbors{closestWallIdHand})
-                
-                % cycle through connected wall endpoints and check
-                A = X.am.mazeWalls(X.am.hasNeighbors{closestWallIdHand}(n), 1:2:3);
-                B = X.am.mazeWalls(X.am.hasNeighbors{closestWallIdHand}(n), 2:2:4);
-                
-                % check if there is a wall between head and hand
-                isInWall = doesIntersect(A,B,C,D);
-                %%%% HED enter wall here
-                
-                if isInWall
-                    figure(X.am.fig_handle)
-                    %title('in wall');
-                    % check if hand or head crossed first
-                    if whichSide(C, A, B) ~= whichSide(lastHandCentroid, A, B)
-                        handCrossed = 1;
-                        valueToSendHand = 0;
-                        lastWallIdHand = closestWallIdHand; % keep track of this
-                        % plot for now
-                        g=findobj(gcf,'tag','handCrossedWall');
-                        if ~isempty(g)
-                            delete(g)
-                        end
-                        line(X.am.mazeWalls(closestWallIdHand,1:2), X.am.mazeWalls(closestWallIdHand,3:4), 'linewidth', 10, 'color','r', 'tag', 'handCrossedWall');
-                        %break; % got one, no need to continue
-                    end
-                    
-                    if whichSide(D, A, B) ~= whichSide(lastHeadCentroid, A, B)
-                        headCrossed = 1;
-                        valueToSendHead = 0;
-                        lastWallIdHead = closestWallIdHead; % keep track of this
-                        % plot for now
-                        g=findobj(gcf,'tag','headCrossedWall');
-                        if ~isempty(g)
-                            delete(g)
-                        end
-                        line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b','linestyle','--', 'tag', 'headCrossedWall');
-                        %break; % got one, no need to continue
-                    end
-                end
-            end
-        end
-        
-        % have to check this again
-        if isInWall && handCrossed
-            valueToSendHand = 0;
-        elseif isInWall && headCrossed
-            valueToSendHead = 0;
-        end
-        
-        if ~isInWall
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % 7. determine if hand is touching or alarming
-            figure(X.am.fig_handle); %this profiled exceptionally slow--real?
-            %title(sprintf('%1.3f %1.3f', closestDistanceHand, X.mazeinfo.handProximityThresh));
-            if  closestDistanceHand > X.mazeinfo.handProximityThresh
-                valueToSendHand = 999;
-                
-                % here we have just left near wall zone, reset flags and send
-                % HED marker
-                if isNearWallHand == 1;
-                    X.totalTimeNearWallHand = X.totalTimeNearWallHand + timeNearWallHand;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandNear/Offset/TotalDuration/%1.4f,',timeNearWallHand, X.totalTimeNearWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    isNearWallHand = 0;
-                    timeNearWallHand = 0;
-                end
-                
-                % same, but for in wall
-                if isTouchingWallHand == 1;
-                    X.totalTimeTouchingWallHand = X.totalTimeTouchingWallHand + timeTouchingWallHand;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HandAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    isTouchingWallHand = 0;
-                    timeTouchingWallHand = 0;
-                end
-                
-                % we are now near the wall, possible in it or through it
-            else
-                valueToSendHand = (closestDistanceHand/X.mazeinfo.handProximityThresh)^1;
-                
-                % first frame near wall
-                if isNearWallHand == 0
-                    X.nearWallCntHand = X.nearWallCntHand+1;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandNear/Onset/TouchCount/%d',X.nearWallCntHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                end
-                
-                % do this always if near a wall
-                isNearWallHand = 1;
-                timeNearWallHand = timeNearWallHand+timeDiff;
-                
-                % check to see if lingering near a wall, and switch to
-                % alarm if so
-                if timeNearWallHand > X.nearWallAccumThresh
-                    X.lingeringWallCntHand = X.lingeringWallCntHand+1;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/LingerCount/%d',X.lingeringWallCntHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    valueToSendHand = 0;
-                end
-                
-                % wall alarm is sounding
-                if 1-valueToSendHand > X.hand_in_wall_prox && timeNearWallHand <= X.nearWallAccumThresh
-                    
-                    % first frame touching wall
-                    if isTouchingWallHand == 0
-                        X.touchingWallCntHand = X.touchingWallCntHand+1;
-                        HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandAlarm/Onset/TouchCount/%d',X.touchingWallCntHand);
-                        X.LSL.emitHEDtag(HEDtag, timeIs);
-                    end
-                    
-                    % do this always if touching a wall
-                    isTouchingWallHand = 1;
-                    timeTouchingWallHand = timeTouchingWallHand+timeDiff;
-                end
-            end
-            
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % 8. determine if head is touching or alarming
-            if  closestDistanceHead > X.mazeinfo.headProximityThresh
-                valueToSendHead = 999;
-                
-                % here we have just left near wall zone, reset flags and send
-                % HED marker (TODO)
-                if isNearWallHead == 1;
-                    X.totalTimeNearWallHead = X.totalTimeNearWallHead + timeNearWallHead;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadNear/Offset/TotalDuration/%1.4f,',timeNearWallHead, X.totalTimeNearWallHead);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    isNearWallHead = 0;
-                    timeNearWallHead = 0;
-                end
-                
-                % same, but for in wall
-                if isTouchingWallHead == 1;
-                    X.totalTimeTouchingWallHead = X.totalTimeTouchingWallHead + timeTouchingWallHead;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Offset/Duration/%1.4f,Stimulus/Auditory/WallSound/HeadAlarm/Offset/TotalDuration/%1.4f,',timeTouchingWallHand, X.totalTimeTouchingWallHand);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    isTouchingWallHead = 0;
-                    timeTouchingWallHead = 0;
-                end
-                
-                % we are now near the wall, possibly in it
-            else
-                valueToSendHead = (closestDistanceHead/X.mazeinfo.headProximityThresh)^1;
-                
-                % first frame near wall
-                if isNearWallHead == 0
-                    X.nearWallCntHead = X.nearWallCntHead+1;
-                    HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadNear/Onset/TouchCount/%d',X.nearWallCntHead);
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                end
-                
-                % do this always when head is near wall
-                isNearWallHead = 1;
-                timeNearWallHead = timeNearWallHead+timeDiff;
-                
-                % wall alarm is sounding
-                if 1-valueToSendHead > X.head_in_wall_prox
-                    
-                    % first frame touching wall
-                    if isTouchingWallHead == 0
-                        X.touchingWallCntHead = X.touchingWallCntHead+1;
-                        HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HeadAlarm/Onset/TouchCount/%d',X.touchingWallCntHead);
-                        X.LSL.emitHEDtag(HEDtag, timeIs);
-                    end
-                    
-                    % do this always when head is touching wall
-                    isTouchingWallHead = 1;
-                    timeTouchingWallHead = timeTouchingWallHead+timeDiff;
-                end
-            end
-        end
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % 9. update plot, to show beams depending on state
-        % plot the line from the hand to the nearest wall point
-        figure(X.am.fig_handle);
-        h=findobj(gcf,'tag','wallDistanceBeamHand');
-        if ~isempty(h)
-            delete(h)
-        end
-        if isNearWallHand,
-            style='-'; lw = 2;
-        elseif isTouchingWallHand,
-            style='-'; lw = 2;
-        else
-            style=':'; lw = 1;
-        end
-        plot([handCentroid(1) closestWallPointHand(1)],[handCentroid(2) closestWallPointHand(2)], ['r' style], 'linewidth',lw, 'tag','wallDistanceBeamHand')
-        
-        % plot the line from the head to the nearest wall point
-        h=findobj(gcf,'tag','wallDistanceBeamHead');
-        if ~isempty(h)
-            delete(h)
-        end
-        if isNearWallHead,
-            style='-'; lw = 2;
-        elseif isTouchingWallHead,
-            style='-'; lw = 2;
-        else
-            style=':'; lw = 1;
-        end
-        plot([headCentroid(1) closestWallPointHead(1)],[headCentroid(2) closestWallPointHead(2)], ['b' style], 'linewidth',lw, 'tag','wallDistanceBeamHead')
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % 9. check to see if we got to the end
-        for n=1:length(X.tokenReached)
-            if X.tokenReached(n) == 0
-                dist = pdist([X.tokens.mocapLocs(n,:); headCentroid([1 2])], 'euclidean');
-                if dist<X.inTokenTol
-                    % only plot this once
-                    if X.tokenReached(n) == 0
-                        plot(X.tokens.mocapLocs(n,1), X.tokens.mocapLocs(n,2), '.', 'color', [.9 .5 .5], 'markersize',30, 'linewidth', 3);
-                    end
-                    X.tokenReached(n) = 1;
-                end
-            end
-        end
-        
-        % check to see if we started, and returned
-        if hasStarted == 1;
-            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
-            if dist<X.inTokenTol
-                % only plot this once
-                if X.finished == 0;
-                    plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), '.', 'color', [.5 .5 .9], 'markersize',30, 'linewidth', 3);
-                end
-                X.finished = 1;
-                
-                % this is true if not all the end points were hit
-                if length(X.tokenReached(2:end)) ~= length(find(X.tokenReached(2:end))) && canFlourish == 1
-                    X.LSL.MaxMSP.play_flourish(0, 'foo')
-                    HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedImperfect,Filename/fourish1.wav';
-                    X.LSL.emitHEDtag(HEDtag, timeIs);
-                    canFlourish = 0;
-                    deduction = X.wallTouchDeduction * (X.touchingWallCntHand + X.lingeringWallCntHand);
-                    X.bonus = X.bonus - deduction;
-                    if X.bonus < 0
-                        X.bonus = 0;
-                    end
-                    %                     disp('Bonus = 1.2%f', X.bonus);
-                    stop_maze();
-                    
-                else
-                    if canFlourish == 1
-                        X.LSL.MaxMSP.play_flourish(1, 'foo')
-                        HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedPerfect,Filename/fourish2.wav';
-                        X.LSL.emitHEDtag(HEDtag, timeIs);
-                        deduction = X.wallTouchDeduction * (X.touchingWallCntHand + X.lingeringWallCntHand);
-                        X.bonus = X.bonus - deduction;
-                        if X.bonus < 0
-                            X.bonus = 0;
-                        end
-                        if X.bonus == 1.0
-                            pause(4.75)
-                            X.LSL.MaxMSP.play_flourish(2, 'foo')
-                            HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedPerfectFullBonus,Filename/endgame.wav';
-                            X.LSL.emitHEDtag(HEDtag, timeIs);
-                        end
-                        canFlourish = 0;
-                        stop_maze(X);
-                        
-                    end
-                end
-            end
-        end
-        % check to see if we left the first square yet
-        if hasStarted == 0 && headCentroid([1]) ~= [0] && headCentroid([2]) ~= [0]; % this is only true before the ps is active
-            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
-            if dist>X.outTokenTol
-                
-                % only plot this once
-                if hasStarted == 0
-                    plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), 'o', 'color', [.5 .5 .9], 'markersize',10, 'linewidth', 3);
-                end
-                hasStarted = 1;
-                
-            end
-        end
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % 10. send events to the audio engine and emit behavioral data
         
         % determine the pitch of the wall touch sound
@@ -746,19 +395,160 @@ if frameNumber > 1
             handCentroid(1:2), handAzimuth, closestDistanceHand, closestWallPointHand(1:2)];
         X.LSL.emitBehaviorFrame(frameData, timeIs);
         
+        
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % now make some decisions based on state transitions, emitting
+        % proper markers and so on
+        
+        %stateVector = [handInProximity handInWall handCrossedWall headInProximity headInWall headCrossedWall];
+        %changeState = xor(stateVector, lastS.stateVector);
+        
+        for part = {'hand','head')
+            % enter Proximity - increase count, start timer emit event
+            if (S.(part{:}).inProximity && ~lastS.(part{:}).inProximity)
+                X.wallTouchScores.(part{:}).numProximityTouches = X.wallTouchScores.(part{:}).numProximityTouches + 1;
+                X.wallTouchScores.(part{:}).proximityDuration = timeIs; %hack: store start time here
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numProximityTouches);
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+            end
+            % leave Proximity - emit event (with timer value), reset timer
+            if (~S.(part{:}).inProximity && lastS.(part{:}).inProximity)
+                X.wallTouchScores.(part{:}).proximityDuration = timeIs - X.wallTouchScores.(part{:}).proximityDuration;
+                X.wallTouchScores.(part{:}).totalProximityDuration = X.wallTouchScores.(part{:}).totalProximityDuration + X.wallTouchScores.(part{:}).proximityDuration;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.wallTouchScores.(part{:}).proximityDuration);
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+            end
+            % enter Wall
+            if (S.(part{:}).inWall && ~lastS.(part{:}).inWall)
+                X.wallTouchScores.(part{:}).numWallTouches = X.wallTouchScores.(part{:}).numWallTouches + 1;
+                X.wallTouchScores.(part{:}).wallDuration = timeIs; %hack: store start time here
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandWall/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numWallTouches);
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+            end
+            % leave Wall
+            if (~S.(part{:}).inWall && lastS.(part{:}).inWall)
+                X.wallTouchScores.(part{:}).wallDuration = timeIs - X.wallTouchScores.(part{:}).wallDuration;
+                X.wallTouchScores.(part{:}).totalWallDuration = X.wallTouchScores.(part{:}).totalWallDuration + X.wallTouchScores.(part{:}).wallDuration;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.wallTouchScores.(part{:}).wallDuration);
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+            end
+            % go through wall
+            if (S.(part{:}).crossedWall && ~lastS.(part{:}).crossedWall)
+                X.wallTouchScores.(part{:}).numThroughWall = X.wallTouchScores.(part{:}).numThroughWall + 1;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandThroughWall/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numThroughWall);
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+                line(X.am.mazeWalls(S.(part{:}).closestWallId,1:2), X.am.mazeWalls(S.(part{:}).closestWallId,3:4), 'linewidth', 10, 'color',partColor.(part{:}), 'tag', [part{:} 'CrossedWall']);
+            end
+            %return from going through wall
+            if (~S.(part{:}).crossedWall && lastS.(part{:}).crossedWall)
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandThroughWall/Offset');
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+                delete(findobj(gcf,'tag',[part{:} 'CrossedWall']))
+            end
+        end %part loop
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 9. update plot, to show beams depending on state
+        % plot the line from the hand to the nearest wall point
+        figure(X.am.fig_handle);
+        for part = {'hand','head'}
+            delete(findobj(gcf,'tag',[part{:} 'WallDistanceBeam']);
+            if S.(part{:}).inProximity
+                style='-'; lw = 2;
+            elseif S.(part{:}).inWall
+                style='-'; lw = 3;
+            else
+                style=':'; lw = 1;
+            end
+            plot([S.(part{:}).centroid(1) S.(part{:}).closestWallPoint(1)],[S.(part{:}).centroid(2) S.(part{:}).closestWallPoint(2)], [partColor.(part{:}) style], 'linewidth',lw, 'tag',[part{:} 'WallDistanceBeam']) 
+        end %part loop
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 9. check to see if we got to the maze end
+        for n=1:length(X.tokenReached)
+            if X.tokenReached(n) == 0
+                dist = pdist([X.tokens.mocapLocs(n,:); S.head.centroid([1 2])], 'euclidean');
+                if dist<X.inTokenTol
+                    % only plot this once
+                    if X.tokenReached(n) == 0
+                        plot(X.tokens.mocapLocs(n,1), X.tokens.mocapLocs(n,2), '.', 'color', [.9 .5 .5], 'markersize',30, 'linewidth', 3);
+                    end
+                    X.tokenReached(n) = 1;
+                end
+            end
+        end
+        
+        %% check to see if we have returned to end
+        distToStart = pdist([X.tokens.mocapLocs(1,:); S.head.centroid([1 2])], 'euclidean');
+        if hasStarted && distToStart < X.inTokenTol
+            %we've finished!
+            % only plot this once
+            if X.finished == 0
+                plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), '.', 'color', [.5 .9 .5], 'markersize',30, 'linewidth', 3); %green signifies end
+            end
+            X.finished = 1;
+            
+            %did we explore entire maze (or not?) --play appropriate ending
+            %sound
+            % depends if all the token points were hit
+            X.performance.nFoundTokens = sum(X.tokenReached(2:end));
+            X.performance.foundAllTokens = (X.perfornamce.nFoundTokens == length(X.tokenReached(2:end)));
+            
+            if X.performance.foundAllTokens && canFlourish == 1
+                X.LSL.MaxMSP.play_flourish(1, 'FoundAllTokens')
+                HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedPerfect,Filename/fourish2.wav';
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+                canFlourish = 0;
+            else
+                X.LSL.MaxMSP.play_flourish(0, 'FoundSomeTokens')
+                HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedImperfect,Filename/fourish1.wav';
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+                canFlourish = 0;
+            end
+            
+            %calculate bonus
+            deduction = X.wallTouchDeduction * (X.touchingWallCntHand + X.lingeringWallCntHand);
+            X.bonus = X.bonus - deduction;
+            if X.bonus < 0
+                X.bonus = 0;
+            end
+            if X.bonus == 1.0
+                pause(4.75)
+                X.LSL.MaxMSP.play_flourish(2, 'foo')
+                HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedPerfectFullBonus,Filename/endgame.wav';
+                X.LSL.emitHEDtag(HEDtag, timeIs);
+            end
+            
+            %% END HERE score and save
+            finalizeScoring(X);
+            stop_maze(X);
+            %% END HERE
+            
+        end %we reached end
+        
+        % check to see if we left the first square yet
+        if hasStarted == 0 && headCentroid([1]) ~= [0] && headCentroid([2]) ~= [0]; % this is only true before the ps is active
+            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
+            if dist>X.outTokenTol
+                
+                % only plot this once
+                if hasStarted == 0
+                    plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), 'o', 'color', [.5 .5 .9], 'markersize',10, 'linewidth', 3);
+                end
+                hasStarted = 1;
+            end
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % 11. finish by getting ready for the next frame
+        
+        %%% update title with informative info
+        title(sprintf('hand: %3.3f %c, head: %3.3f %c (%s)',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
+            S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'In Wall','')),'fontsize',24);
+        disp([isInWall S.hand.crossedWall S.head.crossedWall])
+        
     end % if frameNumber > 5
-    
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % 11. finish by getting ready for the next frame
-%     lastHeadCentroid = headCentroid;
-%     lastHandCentroid = handCentroid;
-    
-    %%% update title with informative info
-    title(sprintf('hand: %3.3f %c, head: %3.3f %c (%s)',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
-        S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'In Wall','')),'fontsize',24);
-    disp([isInWall S.hand.crossedWall S.head.crossedWall])
-    
+      
     % at END OF LOOP Store current state to compare in next frame
     % this'll be easiest (perhaps?) as a state vector that we can
     % xor?
@@ -767,7 +557,7 @@ if frameNumber > 1
 end %if frameNumber > 1
 
 % for debugging:
-if (0 && X.mazeDebug && frameNumber == 10)
-    %stop_maze();
+if (1 && X.debugMaze && frameNumber == 10)
+    disp('stopping after frame 10 for debugging')
     keyboard
 end
