@@ -9,7 +9,7 @@ if DEBUG
     %doesn't show errors properly
     dbstop if error
     disp('DEBUG: non-timer version')
-    while 1
+    while ~X.finished,
         tic
         simpleTaskCb
         ttt=toc;

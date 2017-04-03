@@ -9,7 +9,7 @@ stop_maze
 %save trial results here
 saveDirectory = fullfile('C:\Users\mobi\Desktop\AudiomazeTrialData','');
 
-debugMaze = true; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
+debugMaze = false; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
 infiniteWalls = true; %if participant goes through a wall, keep warning regardless of how far they go
 inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clear: back away from the wall sound
 

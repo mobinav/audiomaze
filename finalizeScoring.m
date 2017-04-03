@@ -15,7 +15,7 @@
      X.performance.wallTouchScores.hand.numWallTouches * X.rewardStructure.wallTouchPenalty;
  
  % earning for this trial
- X.performance.earned = min(0, X.performance.maxEarning - X.performance.lost); %don't let go negative
+ X.performance.earned = max(0, X.performance.maxEarning - X.performance.lost); %don't let go negative
  
  fprintf(2,'Maze %s, Trial %d End\n\tmaze value = %g\n\tmaze completed bonus = %g\n\n\t# proximity/wall touches = %d/%d\n\tdeduction = %g\n\nTOTAL = %g\n', ...
      X.which_maze, X.trial_number, X.rewardStructure.mazeReward, X.rewardStructure.mazeCompletedBonus, X.performance.wallTouchScores.hand.numProximityTouches, ...
@@ -26,10 +26,8 @@
  X.saveFilename = fullfile(X.subjectDirectory, sprintf('%s_maze%s_trial%d_%s.mat',X.subject_id, X.which_maze, X.trial_number, datestr(now,'yyyy-mm-dd_HH-MM-SS')));
  
  %remove irrelevant fields
- Xorig = X;
- X = rmfield(X,{'LSL', 'am','mocap'});
- save(X.saveFilename, 'X')
- X = Xorig;
+ trialData = rmfield(X,{'LSL', 'am','mocap'});
+ save(X.saveFilename, 'trialData')
 
 %      X.rewardStructure
 %                    shape: 'U'

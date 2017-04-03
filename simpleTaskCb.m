@@ -88,6 +88,7 @@ if isempty(frameNumber)
     uncrossedState.hand.closestWallPoint = [];
     uncrossedState.head.centroid = [];
     uncrossedState.head.closestWallPoint = [];
+    uncrossedState.whoCrossedFirst = [];
 end
 
 %set up our current state vector, make it easier to iterate head/hand
@@ -320,37 +321,51 @@ if frameNumber > 1
 
             % reference is previous frame if we're not crossed; stored
             % reference if we are currently crossed
+            %keyboard
             if ~lastS.(parts{iPart}).crossedWall
-                toWall    = S.(parts{iPart}).centroid(1:2)      - S.(parts{iPart}).closestWallPoint;
-                reference = S.(parts{iOtherPart}).centroid(1:2) - S.(parts{iPart}).closestWallPoint;
+                toWall    = S.(parts{iPart}).centroid(1:2)     - S.(parts{iPart}).closestWallPoint;
+                reference = lastS.(parts{iPart}).centroid(1:2) - S.(parts{iPart}).closestWallPoint;
                 %crossed = sign(dot(toWall, reference));
                 crossed = ji_vecang(toWall, reference) > (pi/2 + 0.05); %slight hysterisis ( 90 + 3 deg)
                 if crossed
                     %keyboard
-                    uncrossedState.(parts{iPart}).centroid = S.(parts{iOtherPart}).centroid(1:2); %on first cross, store reference location
+                    if isempty(uncrossedState.whoCrossedFirst)
+                        uncrossedState.whoCrossedFirst = iPart;
+                        uncrossedState.centroid =  S.(parts{iOtherPart}).centroid(1:2);
+                    end
+                    %uncrossedState.(parts{iPart}).centroid = S.(parts{iOtherPart}).centroid(1:2); %on first cross, store reference location
                     uncrossedState.(parts{iPart}).closestWallPoint = S.(parts{iPart}).closestWallPoint; %keep looking relative to wall point of crossing
                     uncrossedState.(parts{iPart}).azimuth = lastS.(parts{iPart}).azimuth; %if we want to freeze the azimuth
                 end
             else %already crossed, are we still crossed?
-                toWall    = S.(parts{iPart}).centroid(1:2)              - uncrossedState.(parts{iPart}).closestWallPoint;
-                reference = uncrossedState.(parts{iPart}).centroid(1:2) - uncrossedState.(parts{iPart}).closestWallPoint;
+                toWall    = S.(parts{iPart}).centroid(1:2)- S.(parts{iPart}).closestWallPoint;
+                reference = uncrossedState.centroid(1:2)  - S.(parts{iPart}).closestWallPoint;
                 %crossed = sign(dot(toWall, reference));
                 crossed = ji_vecang(toWall, reference) > (pi/2 + 0.05); %slight hysterisis  ( 90 + 3 deg)
                 if ~crossed
-                    uncrossedState.(parts{iPart}).centroid = []; %on uncross, clear reference
+                    %keyboard
+                    if uncrossedState.whoCrossedFirst == iPart
+                        if ~lastS.(parts{iOtherPart}).crossedWall
+                            uncrossedState.whoCrossedFirst = [];
+                            uncrossedState.centroid =  [];
+                        else
+                            uncrossedState.whoCrossedFirst = iOtherPart;
+                        end
+                    end
+                    %uncrossedState.(parts{iPart}).centroid = []; %on uncross, clear reference
                     uncrossedState.(parts{iPart}).closestWallPoint = [];
                     uncrossedState.(parts{iPart}).azimuth = [];
                 end
             end
             
             %set state based on whether we're currently crossed
-            if crossed < 0
+            if crossed
                 S.(parts{iPart}).crossedWall = true;
             else
                 S.(parts{iPart}).crossedWall = false;
             end
             
-            S.(parts{iPart}).closestDistance = S.(parts{iPart}).closestDistance * crossed; %becomes negative if crossed over
+            %S.(parts{iPart}).closestDistance = S.(parts{iPart}).closestDistance * crossed; %becomes negative if crossed over
             %check if closestDistanceHand ~ norm(handToWall)
             %if crossed through, we don't care how far: implements 'infinite thickness wall'
             if S.(parts{iPart}).crossedWall && X.infiniteWalls
@@ -601,7 +616,7 @@ if frameNumber > 1
         %%% update title with informative info
         title(sprintf('hand: %03.3f %c, head: %03.3f %c %s',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
             S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'(In Wall)','')),'fontsize',24);
-        disp([isInWall S.hand.crossedWall S.head.crossedWall])
+       
         
     end % if frameNumber > 5
       
