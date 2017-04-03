@@ -2,6 +2,8 @@ function simpleTaskCb
 % simpleTaskCb callback function that is the main loop of the simpleTask
 % implementation of the audiomaze
 
+DEBUG = false; %if true, will stop after 10 frames for debugging
+
 parts = {'hand','head'};
 partColor.hand = 'r';  %plot colors for hand and head
 partColor.head = 'b';
@@ -19,14 +21,11 @@ persistent frameNumber
 % for checking whether or not we passed through a wall
 persistent isInWall
 
+%for storing the last position before crossing over
+persistent uncrossedState
+
 % if we want to use the last good marker data to fill in bad markers
 persistent lastMarkers lastMarkerWasFresh acceptableMarkerAge
-
-% other persistent variables, previous frame data
-persistent lastWallIdHead lastWallIdHand lastHeadCentroid lastHandCentroid lastVelocity
-
-% for checking whether head or hand crossed first
-persistent headCrossed handCrossed
 
 % for keeping track of time
 persistent timeWas
@@ -58,29 +57,8 @@ if isempty(frameNumber)
     lastS.hand.centroid = [0 0 0];
     lastS.head.wallId = 0;
     lastS.head.centroid = [0 0 0];
-    
-    %         lastWallIdHead = 0;
-    %         lastWallIdHand = 0;
-    %         lastHeadCentroid = [0 0 0];
-    %         lastHandCentroid = [0 0 0];
-    lastVelocity = 0;
     isInWall = 0;
-    headCrossed = 0;
-    handCrossed = 0;
     timeWas = lsl_local_clock(X.LSL.lib);
-    %         isNearWallHand = 0;
-    %         isTouchingWallHand = 0;
-    %         timeNearWallHand = 0;
-    %         timeTouchingWallHand = 0;
-    %         isNearWallHead = 0;
-    %         isTouchingWallHead = 0;
-    %         timeNearWallHead = 0;
-    %         timeTouchingWallHead = 0;
-    %         timeInWallHand = 0;
-    %         timeInWallHead = 0;
-    velocityState = zeros(1,filtLength);
-    avB = .1*ones(1,10);
-    diffB = [1 -1];
     hasStarted = 0;
     canFlourish = 1;
     
@@ -89,7 +67,7 @@ if isempty(frameNumber)
     blank.numWallTouches = 0;
     blank.numThroughWall = 0;
     blank.proximityDuration = 0;
-    blank.totalProxmityDuration = 0;
+    blank.totalProximityDuration = 0;
     blank.wallDuration = 0;
     blank.totalWallDuration = 0;
     X.performance.wallTouchScores.hand = blank;
@@ -105,6 +83,11 @@ if isempty(frameNumber)
     X.mazeinfo.hand.in_wall_prox    = X.hand_in_wall_prox;
     X.mazeinfo.head.proximityThresh = X.mazeinfo.headProximityThresh;
     X.mazeinfo.head.in_wall_prox    = X.head_in_wall_prox;
+    
+    uncrossedState.hand.centroid = [];
+    uncrossedState.hand.closestWallPoint = [];
+    uncrossedState.head.centroid = [];
+    uncrossedState.head.closestWallPoint = [];
 end
 
 %set up our current state vector, make it easier to iterate head/hand
@@ -113,12 +96,13 @@ B.goodMarkers = [];
 B.centroid = [0 0 0];
 B.closestDistance = inf;
 B.closestWallId = [];
-B.closestWallPoint = [];
+B.closestWallPoint = [0 0];
 B.closestMarkerId = [];
 B.inProximity = false;
 B.inWall = false;
 B.crossedWall = false;
 B.valueToSend = 999;
+B.azimuth = 0;
 S.hand = B;
 S.head = B;
 
@@ -135,6 +119,8 @@ if frameNumber == 0
     X.LSL.MaxMSP.play_flourish(3, 'foo')
     HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/StartBell,Filename/start_bell.wav';
     X.LSL.emitHEDtag(HEDtag, timeIs);
+    X.mazeStartTime = timeIs;
+    frameNumber = 1;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,10 +140,12 @@ end
 %   2) keep track of markers that were good the last maze frame and use
 %   these to 'fill in' any markers missing from this frame
 
-frameNumber = frameNumber+1;
 [sample, stamps] = X.LSL.phasespace.inlet.pull_chunk();
 
 if ~isempty(sample)
+    
+    frameNumber = frameNumber+1;
+
     %convert phasespace coords to a more conventional system
     %where X = East, Y = North, Z = up--makes most sense sitting in control room
     %phasespace oriented to x=north, y=up, z=east
@@ -304,17 +292,52 @@ if frameNumber > 1
         %
         %we can implement 'infinite through' behavior easily--if it's
         %negative, call the valueToSend = 0;
+        %
+        % note, wall crossing logic might need to change--here it's based
+        % on whether the hand is on opposite side from  head, but that's
+        % ambiguous! instead, compare current direction to previous frame
+        % and upon cross, store that
         
         % find distance and assign MAX control value as well as state
         for part = {'hand','head'}
-            handToWall = S.hand.centroid(1:2) - S.(part{:}).closestWallPoint;
-            headToWall = S.head.centroid(1:2) - S.(part{:}).closestWallPoint;
-            crossed = sign(dot(handToWall, headToWall));
-            S.(part{:}).crossedWall = crossed < 0;
+            % first frame crosing wall, these vectors will point opposite
+            % directions
+
+            
+            % reference is previous frame if we're not crossed, and stored
+            % reference if we are currently crossed
+            if ~lastS.(part{:}).crossedWall
+                toWall    = S.(part{:}).centroid(1:2)     - S.(part{:}).closestWallPoint;
+                reference = lastS.(part{:}).centroid(1:2) - S.(part{:}).closestWallPoint;
+                crossed = sign(dot(toWall, reference));
+                if crossed < 0,
+                    %keyboard
+                    uncrossedState.(part{:}).centroid = lastS.(part{:}).centroid(1:2); %on first cross, store reference
+                    uncrossedState.(part{:}).closestWallPoint = S.(part{:}).closestWallPoint;
+                    uncrossedState.(part{:}).azimuth = lastS.(part{:}).azimuth;
+                end
+            else %already crossed, are we still crossed?
+                toWall    = S.(part{:}).centroid(1:2)              - uncrossedState.(part{:}).closestWallPoint;
+                reference = uncrossedState.(part{:}).centroid(1:2) - uncrossedState.(part{:}).closestWallPoint;
+                crossed = sign(dot(toWall, reference));
+                if crossed > 0 ,
+                    uncrossedState.(part{:}).centroid = []; %on uncross clear reference
+                    uncrossedState.(part{:}).closestWallPoint = [];
+                    uncrossedState.(part{:}).azimuth = [];
+                end
+            end
+            
+            %set state based on whether we're currently crossed
+            if crossed < 0,
+                S.(part{:}).crossedWall = true;
+            else
+                S.(part{:}).crossedWall = false;
+            end
+            
             S.(part{:}).closestDistance = S.(part{:}).closestDistance * crossed; %becomes negative if crossed over
             %check if closestDistanceHand ~ norm(handToWall)
             %if crossed through, we don't care how far: implements 'infinite thickness wall'
-            if S.(part{:}).crossedWall && X.infinteWalls
+            if S.(part{:}).crossedWall && X.infiniteWalls
                 S.(part{:}).valueToSend = 0;
                 S.(part{:}).inProximity = true;
                 S.(part{:}).inWall      = true;
@@ -325,7 +348,10 @@ if frameNumber > 1
                 else %near wall--in proximity and possibly in wall
                     S.(part{:}).valueToSend = abs(S.(part{:}).closestDistance/X.mazeinfo.(part{:}).proximityThresh)^1;
                     S.(part{:}).inProximity = true;
-                    if (1-valueToSendHand) > X.hand_in_wall_prox
+                    %test if in wall--NB, this is referenced to MAX's internal
+                    %threshold for inWall sounds, NOT the wall size
+                    %specified in X.mazeinfo.
+                    if (1 - S.(part{:}).valueToSend) > X.mazeinfo.(part{:}).in_wall_prox
                         S.(part{:}).inWall = true;
                     else
                         S.(part{:}).inWall = false;
@@ -355,8 +381,8 @@ if frameNumber > 1
         plot(projectedAudioPointHead(1), projectedAudioPointHead(2),'bo', 'tag','audio_point', 'markersize',12, 'linewidth', 3);
         
         % compute the angle for the audio engine
-        handAzimuth = -rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2)));
-        headAzimuth = -rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2)));
+        S.hand.azimuth = -rad2deg(atan2(projectedAudioPointHand(1), projectedAudioPointHand(2)));
+        S.head.azimuth = -rad2deg(atan2(projectedAudioPointHead(1), projectedAudioPointHead(2)));
         % need to sort this out, but is correct for now. Somehow MAX
         % and maze azimuths are inverses of each other. Not sure why
         % it's 1,2 instead of 2,1 (y,x)
@@ -365,7 +391,19 @@ if frameNumber > 1
         % so negate headAzimuth if through wall (I think that will
         % work)
         if S.head.crossedWall
-            headAzimuth = -headAzimuth;
+             S.head.azimuth = -S.head.azimuth;
+        end
+        
+        % it might make sense when in the 'infinite wall' for the azimuth
+        % to freeze, so the proper response is always to back away from the
+        % sound.
+        if isInWall && X.inWallFreezeAzimuth,
+           if S.hand.crossedWall,
+               S.hand.azimuth = uncrossedState.hand.azimuth;
+           end
+           if S.head.crossedWall,
+               S.head.azimuth = uncrossedState.head.azimuth;
+           end
         end
         
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -385,14 +423,14 @@ if frameNumber > 1
         
         % send the values to the audio engine
         X.LSL.MaxMSP.send_noise_freq(noiseFreq, '');
-        X.LSL.MaxMSP.send_hand_proximity(S.hand.valueToSend, handAzimuth, 'wallSound');
-        X.LSL.MaxMSP.send_headwall(S.head.valueToSend, headAzimuth, 'wallSound'); %this profiles much slower, why?
+        X.LSL.MaxMSP.send_hand_proximity(S.hand.valueToSend, S.hand.azimuth, 'handWallSound');
+        X.LSL.MaxMSP.send_headwall(S.head.valueToSend, S.head.azimuth, 'headWallSound'); %this profiles much slower, why?
         
         % emit the behavioral data for this frame
         %'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y',...
         %'handCentroid_x','handCentroid_y','handAzimuth','handDistance','closestWallPointHand_x','closestWallPointHand_y'}
-        frameData = [headCentroid(1:2), headAzimuth, closestDistanceHead, closestWallPointHead(1:2),...
-            handCentroid(1:2), handAzimuth, closestDistanceHand, closestWallPointHand(1:2)];
+        frameData = [S.hand.centroid(1:2), S.hand.azimuth, S.hand.closestDistance, S.hand.closestWallPoint(1:2),...
+                     S.head.centroid(1:2), S.head.azimuth, S.head.closestDistance, S.head.closestWallPoint(1:2)];
         X.LSL.emitBehaviorFrame(frameData, timeIs);
         
         
@@ -406,36 +444,36 @@ if frameNumber > 1
         for part = {'hand','head'}
             % enter Proximity - increase count, start timer emit event
             if (S.(part{:}).inProximity && ~lastS.(part{:}).inProximity)
-                X.wallTouchScores.(part{:}).numProximityTouches = X.wallTouchScores.(part{:}).numProximityTouches + 1;
-                X.wallTouchScores.(part{:}).proximityDuration = timeIs; %hack: store start time here
-                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numProximityTouches);
+                X.performance.wallTouchScores.(part{:}).numProximityTouches = X.performance.wallTouchScores.(part{:}).numProximityTouches + 1;
+                X.performance.wallTouchScores.(part{:}).proximityDuration = timeIs; %hack: store start time here
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Onset/TouchCount/%d',X.performance.wallTouchScores.(part{:}).numProximityTouches);
                 X.LSL.emitHEDtag(HEDtag, timeIs);
             end
             % leave Proximity - emit event (with timer value), reset timer
             if (~S.(part{:}).inProximity && lastS.(part{:}).inProximity)
-                X.wallTouchScores.(part{:}).proximityDuration = timeIs - X.wallTouchScores.(part{:}).proximityDuration;
-                X.wallTouchScores.(part{:}).totalProximityDuration = X.wallTouchScores.(part{:}).totalProximityDuration + X.wallTouchScores.(part{:}).proximityDuration;
-                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.wallTouchScores.(part{:}).proximityDuration);
+                X.performance.wallTouchScores.(part{:}).proximityDuration = timeIs - X.performance.wallTouchScores.(part{:}).proximityDuration;
+                X.performance.wallTouchScores.(part{:}).totalProximityDuration = X.performance.wallTouchScores.(part{:}).totalProximityDuration + X.performance.wallTouchScores.(part{:}).proximityDuration;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.performance.wallTouchScores.(part{:}).proximityDuration);
                 X.LSL.emitHEDtag(HEDtag, timeIs);
             end
             % enter Wall
             if (S.(part{:}).inWall && ~lastS.(part{:}).inWall)
-                X.wallTouchScores.(part{:}).numWallTouches = X.wallTouchScores.(part{:}).numWallTouches + 1;
-                X.wallTouchScores.(part{:}).wallDuration = timeIs; %hack: store start time here
-                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandWall/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numWallTouches);
+                X.performance.wallTouchScores.(part{:}).numWallTouches = X.performance.wallTouchScores.(part{:}).numWallTouches + 1;
+                X.performance.wallTouchScores.(part{:}).wallDuration = timeIs; %hack: store start time here
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandWall/Onset/TouchCount/%d',X.performance.wallTouchScores.(part{:}).numWallTouches);
                 X.LSL.emitHEDtag(HEDtag, timeIs);
             end
             % leave Wall
             if (~S.(part{:}).inWall && lastS.(part{:}).inWall)
-                X.wallTouchScores.(part{:}).wallDuration = timeIs - X.wallTouchScores.(part{:}).wallDuration;
-                X.wallTouchScores.(part{:}).totalWallDuration = X.wallTouchScores.(part{:}).totalWallDuration + X.wallTouchScores.(part{:}).wallDuration;
-                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.wallTouchScores.(part{:}).wallDuration);
+                X.performance.wallTouchScores.(part{:}).wallDuration = timeIs - X.performance.wallTouchScores.(part{:}).wallDuration;
+                X.performance.wallTouchScores.(part{:}).totalWallDuration = X.performance.wallTouchScores.(part{:}).totalWallDuration + X.performance.wallTouchScores.(part{:}).wallDuration;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandProximity/Offset/Duration/%1.4f',X.performance.wallTouchScores.(part{:}).wallDuration);
                 X.LSL.emitHEDtag(HEDtag, timeIs);
             end
             % go through wall
             if (S.(part{:}).crossedWall && ~lastS.(part{:}).crossedWall)
-                X.wallTouchScores.(part{:}).numThroughWall = X.wallTouchScores.(part{:}).numThroughWall + 1;
-                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandThroughWall/Onset/TouchCount/%d',X.wallTouchScores.(part{:}).numThroughWall);
+                X.performance.wallTouchScores.(part{:}).numThroughWall = X.performance.wallTouchScores.(part{:}).numThroughWall + 1;
+                HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/WallSound/HandThroughWall/Onset/TouchCount/%d',X.performance.wallTouchScores.(part{:}).numThroughWall);
                 X.LSL.emitHEDtag(HEDtag, timeIs);
                 line(X.am.mazeWalls(S.(part{:}).closestWallId,1:2), X.am.mazeWalls(S.(part{:}).closestWallId,3:4), 'linewidth', 10, 'color',partColor.(part{:}), 'tag', [part{:} 'CrossedWall']);
             end
@@ -478,7 +516,7 @@ if frameNumber > 1
             end
         end
         
-        %% check to see if we have returned to end
+        %% check to see if we have returned to start
         distToStart = pdist([X.tokens.mocapLocs(1,:); S.head.centroid([1 2])], 'euclidean');
         if hasStarted && distToStart < X.inTokenTol
             %we've finished!
@@ -487,12 +525,14 @@ if frameNumber > 1
                 plot(X.tokens.mocapLocs(1,1), X.tokens.mocapLocs(1,2), '.', 'color', [.5 .9 .5], 'markersize',30, 'linewidth', 3); %green signifies end
             end
             X.finished = 1;
+            X.mazeEndTime = timeIs;
+            X.mazeDuration = X.mazeEndTime - X.mazeStartTime; %duplicates X.timeTotal, but oh well...
             
             %did we explore entire maze (or not?) --play appropriate ending
             %sound
             % depends if all the token points were hit
             X.performance.nFoundTokens = sum(X.tokenReached(2:end));
-            X.performance.foundAllTokens = (X.perfornamce.nFoundTokens == length(X.tokenReached(2:end)));
+            X.performance.foundAllTokens = (X.performance.nFoundTokens == length(X.tokenReached(2:end)));
             
             if X.performance.foundAllTokens && canFlourish == 1
                 X.LSL.MaxMSP.play_flourish(1, 'FoundAllTokens')
@@ -504,32 +544,32 @@ if frameNumber > 1
                 HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedImperfect,Filename/fourish1.wav';
                 X.LSL.emitHEDtag(HEDtag, timeIs);
                 canFlourish = 0;
-            end
+            end 
             
-            %calculate bonus
-            deduction = X.wallTouchDeduction * (X.touchingWallCntHand + X.lingeringWallCntHand);
-            X.bonus = X.bonus - deduction;
-            if X.bonus < 0
-                X.bonus = 0;
-            end
-            if X.bonus == 1.0
+            %% END HERE score and save
+            X = finalizeScoring(X);
+            
+            %give an extra sound if they did really well
+            if canFlourish && X.performance.foundAllTokens &&  X.performance.lost < 0.5
                 pause(4.75)
                 X.LSL.MaxMSP.play_flourish(2, 'foo')
                 HEDtag = 'Stimulus/Feedback,Stimulus/Auditory/FinishedPerfectFullBonus,Filename/endgame.wav';
-                X.LSL.emitHEDtag(HEDtag, timeIs);
+                X.LSL.emitHEDtag(HEDtag, timeIs+5);
             end
             
-            %% END HERE score and save
-            finalizeScoring(X);
-            stop_maze(X);
+            %finally, emit trial's performance to LSL
+            disp('Emitting trial performance to LSL...')
+            X.LSL.emitResults(X.saveFilename,X.rewardStructure, X.performance)
+            
+            stop_maze
             %% END HERE
             
         end %we reached end
         
         % check to see if we left the first square yet
-        if hasStarted == 0 && headCentroid([1]) ~= [0] && headCentroid([2]) ~= [0]; % this is only true before the ps is active
-            dist = pdist([X.tokens.mocapLocs(1,:); headCentroid([1 2])], 'euclidean');
-            if dist>X.outTokenTol
+        if hasStarted == 0 && S.head.centroid(1) ~= 0 && S.head.centroid(2) ~= 0; % this is only true before the ps is active
+            dist = pdist([X.tokens.mocapLocs(1,:); S.head.centroid([1 2])], 'euclidean');
+            if dist > X.outTokenTol
                 
                 % only plot this once
                 if hasStarted == 0
@@ -543,8 +583,8 @@ if frameNumber > 1
         % 11. finish by getting ready for the next frame
         
         %%% update title with informative info
-        title(sprintf('hand: %3.3f %c, head: %3.3f %c (%s)',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
-            S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'In Wall','')),'fontsize',24);
+        title(sprintf('hand: %03.3f %c, head: %03.3f %c %s',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
+            S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'(In Wall)','')),'fontsize',24);
         disp([isInWall S.hand.crossedWall S.head.crossedWall])
         
     end % if frameNumber > 5
@@ -557,7 +597,7 @@ if frameNumber > 1
 end %if frameNumber > 1
 
 % for debugging:
-if (1 && X.debugMaze && frameNumber == 10)
-    disp('stopping after frame 10 for debugging')
+if (DEBUG && X.debugMaze && frameNumber == 10)
+    fprintf(2,'Stopped after frame 10 for debugging...type ''return'' to continue.\n');
     keyboard
 end
