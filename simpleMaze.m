@@ -16,19 +16,30 @@ inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clea
 % phasespace
 % define what phasespace markers we'll use: primetime is suit, but we may
 %  use head/hand for debugging from time to time.
-%phasespaceProfile = 'Audiomaze Suit'; %full suit
+phasespaceProfile = 'Audiomaze Suit'; %full suit
 %phasespaceProfile = 'Audiomaze Head7 & Hand';
-phasespaceProfile = 'Audiomaze Head4 & Hand';
+%phasespaceProfile = 'Audiomaze Head4 & Hand';
 
 % maze dimensions (# cells)
 n_rows = 5;
 n_cols = 5;
 
 %maze physical size (meters)
-w = 6;
-h = 6.5;
-% w = 5;
-% h = 5;
+wallThickness = 0.1;
+headProximityThresh = .15;
+%original maze was larger, we're trying a smaller one to avoid marker
+%dropout near edges of room--it's worst in northeast corner, which is not
+%part of any maze, but also w/sw wall/corner
+if 0,
+    w = 6;
+    h = 6.5;
+    handProximityThresh = .3;
+else
+    w = 5;
+    h = 5;
+    handProximityThresh = .2;
+end
+
 hasExits = false; %whether to include exits in outer walls (NW / SE corners)
 
 %seed (not used in simple maze)
@@ -36,11 +47,6 @@ random_seed = 0;
 
 %do VR plot as well as simple plot?
 doVrPlot = false;
-
-%wall thickness parameters (meters)
-wallThickness = 0.1;
-handProximityThresh = .3; %set the distance from wall at which hand proximity sounds will begin
-headProximityThresh = .15;
 
 %set up maze-specific rewards
 defaultRewardStructure.maze.A.shape = 'I';
@@ -69,7 +75,6 @@ defaultRewardStructure.wallProximityPenalty = 0.01; %for every touch of the 'war
 %% general setup
 %set up paths
 audiomazeDir = 'c:\Users\mobi\Desktop\audiomaze-2.0';
-audiomazeDir = pwd;
 cd(audiomazeDir)
 addpath(fullfile(audiomazeDir,'vr',''));
 
