@@ -1,12 +1,17 @@
 function simpleMaze()
 % function for initiating a simple maze session
 close all
+stop_maze
 
 %% PARAMETER SETTINGS
 % these apply to entire experiment
 
+%save trial results here
+saveDirectory = fullfile('C:\Users\mobi\Desktop\AudiomazeTrialData','');
+
 debugMaze = true; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
 infiniteWalls = true; %if participant goes through a wall, keep warning regardless of how far they go
+inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clear: back away from the wall sound
 
 % phasespace
 % define what phasespace markers we'll use: primetime is suit, but we may
@@ -74,6 +79,7 @@ X=[];
 
 %% ask user which subject/maze/trial
 X.subject_id = input('Enter subject ID: ','s');
+X.subjectDirectory = ji_fullfile_mkdir(saveDirectory,X.subject_id,'');
 
 is_practice = false;
 which_maze = whichMazePrompt();
@@ -94,6 +100,7 @@ X.is_practice = is_practice;
 X.doVrPlot = doVrPlot;
 X.debugMaze = debugMaze;
 X.infiniteWalls = infiniteWalls;
+X.inWallFreezeAzimuth = inWallFreezeAzimuth;
 X.phasespaceProfile = phasespaceProfile;
 
 %% initialize maze
