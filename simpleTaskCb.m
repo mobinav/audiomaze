@@ -307,6 +307,10 @@ if frameNumber > 1
         %   side of the wall, so that the reference wall crossing point is
         %   no longer relevant. e.g. cross to east then loop north may not
         %   work
+        %
+        % is strict sign test on dot product too sensitive? Need a little
+        % hysterisis? i.e. require cross to be relative angle > 95, uncross
+        % relative angle
         
         % find distance and assign MAX control value as well as state
         for iPart = 1:2 %{'hand','head'} % using different iteration scheme to enable easy access to complementary part
@@ -314,24 +318,26 @@ if frameNumber > 1
             % directions
             iOtherPart = 3-iPart;
 
-            % reference is previous frame if we're not crossed, and stored
+            % reference is previous frame if we're not crossed; stored
             % reference if we are currently crossed
             if ~lastS.(parts{iPart}).crossedWall
-                toWall    = S.(parts{iPart}).centroid(1:2)     - S.(parts{iPart}).closestWallPoint;
+                toWall    = S.(parts{iPart}).centroid(1:2)      - S.(parts{iPart}).closestWallPoint;
                 reference = S.(parts{iOtherPart}).centroid(1:2) - S.(parts{iPart}).closestWallPoint;
-                crossed = sign(dot(toWall, reference));
-                if crossed < 0
+                %crossed = sign(dot(toWall, reference));
+                crossed = ji_vecang(toWall, reference) > (pi/2 + 0.05); %slight hysterisis ( 90 + 3 deg)
+                if crossed
                     %keyboard
                     uncrossedState.(parts{iPart}).centroid = S.(parts{iOtherPart}).centroid(1:2); %on first cross, store reference location
                     uncrossedState.(parts{iPart}).closestWallPoint = S.(parts{iPart}).closestWallPoint; %keep looking relative to wall point of crossing
-                    uncrossedState.(parts{iPart}).azimuth = lastS.(parts{iPart}).azimuth;
+                    uncrossedState.(parts{iPart}).azimuth = lastS.(parts{iPart}).azimuth; %if we want to freeze the azimuth
                 end
             else %already crossed, are we still crossed?
                 toWall    = S.(parts{iPart}).centroid(1:2)              - uncrossedState.(parts{iPart}).closestWallPoint;
                 reference = uncrossedState.(parts{iPart}).centroid(1:2) - uncrossedState.(parts{iPart}).closestWallPoint;
-                crossed = sign(dot(toWall, reference));
-                if crossed > 0
-                    uncrossedState.(parts{iPart}).centroid = []; %on uncross clear reference
+                %crossed = sign(dot(toWall, reference));
+                crossed = ji_vecang(toWall, reference) > (pi/2 + 0.05); %slight hysterisis  ( 90 + 3 deg)
+                if ~crossed
+                    uncrossedState.(parts{iPart}).centroid = []; %on uncross, clear reference
                     uncrossedState.(parts{iPart}).closestWallPoint = [];
                     uncrossedState.(parts{iPart}).azimuth = [];
                 end
