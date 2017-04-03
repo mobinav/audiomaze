@@ -1,27 +1,36 @@
  function X = finalizeScoring(X)
+% finalizeScoring  compute scores, display, and save entire trial state
  
- %% finalize scoreing
+ %score rates are defined in simpleMaze and stored in X.rewardStructure
+ % files are saved in X.subjectDirectory in timestamped file labeled by
+ % maze and trial
+ 
+ % SCORING
+ %maximum possible includes a maze-dependent max (depends on number of
+ %endpoints to find), and a completion bonus if found all endpoints.
  X.performance.maxEarning = X.rewardStructure.mazeReward + X.rewardStructure.mazeCompletedBonus * X.performance.foundAllTokens;
  
+ %penalized for number of wall touches and number of wall proximity touches
  X.performance.lost = X.performance.wallTouchScores.hand.numProximityTouches * X.rewardStructure.wallProximityPenalty + ...
      X.performance.wallTouchScores.hand.numWallTouches * X.rewardStructure.wallTouchPenalty;
  
+ % earning for this trial
  X.performance.earned = min(0, X.performance.maxEarning - X.performance.lost); %don't let go negative
  
- fprintf(2,'Trial End\n\tmaze value = %g\n\tmaze completed bonus = %g\n\n\t# proximity/wall touches = %d/%d\n\tdeduction = %g\n\nTOTAL = %g\n', ...
-     X.rewardStructure.mazeReward, X.rewardStructure.mazeCompletedBonus, X.performance.wallTouchScores.hand.numProximityTouches, ...
+ fprintf(2,'Maze %s, Trial %d End\n\tmaze value = %g\n\tmaze completed bonus = %g\n\n\t# proximity/wall touches = %d/%d\n\tdeduction = %g\n\nTOTAL = %g\n', ...
+     X.which_maze, X.trial_number, X.rewardStructure.mazeReward, X.rewardStructure.mazeCompletedBonus, X.performance.wallTouchScores.hand.numProximityTouches, ...
      X.performance.wallTouchScores.hand.numWallTouches, X.performance.lost, X.performance.earned);
  
- %save it
+ % SAVE
  disp('Saving...')
- X.saveFilename = sprintf('%s_maze%s_trial%d.mat',X.subject_id, X.which_maze, X.trial_number);
+ X.saveFilename = fullfile(X.subjectDirectory, sprintf('%s_maze%s_trial%d_%s.mat',X.subject_id, X.which_maze, X.trial_number, datestr(now,'yyyy-mm-dd_HH-MM-SS')));
+ 
  %remove irrelevant fields
- keyboard
- X = rmfield(X,'LSL', 'am');
+ Xorig = X;
+ X = rmfield(X,{'LSL', 'am','mocap'});
  save(X.saveFilename, 'X')
- 
- 
-      
+ X = Xorig;
+
 %      X.rewardStructure
 %                    shape: 'U'
 %               mazeReward: 2
