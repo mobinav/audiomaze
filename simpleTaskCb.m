@@ -297,64 +297,74 @@ if frameNumber > 1
         % on whether the hand is on opposite side from  head, but that's
         % ambiguous! instead, compare current direction to previous frame
         % and upon cross, store that
+        %
+        % instead, store a reference value upon first crossing--originally
+        % I had it as the previous sample of the same part, but this leads
+        % to some instability. Now, take the reference anchor as the current value of the
+        % complementary part's position and the wall point of crossing.
+        %
+        %   this may still fail if the person does a long loop on the other
+        %   side of the wall, so that the reference wall crossing point is
+        %   no longer relevant. e.g. cross to east then loop north may not
+        %   work
         
         % find distance and assign MAX control value as well as state
-        for part = {'hand','head'}
+        for iPart = 1:2 %{'hand','head'} % using different iteration scheme to enable easy access to complementary part
             % first frame crosing wall, these vectors will point opposite
             % directions
+            iOtherPart = 3-iPart;
 
-            
             % reference is previous frame if we're not crossed, and stored
             % reference if we are currently crossed
-            if ~lastS.(part{:}).crossedWall
-                toWall    = S.(part{:}).centroid(1:2)     - S.(part{:}).closestWallPoint;
-                reference = lastS.(part{:}).centroid(1:2) - S.(part{:}).closestWallPoint;
+            if ~lastS.(parts{iPart}).crossedWall
+                toWall    = S.(parts{iPart}).centroid(1:2)     - S.(parts{iPart}).closestWallPoint;
+                reference = S.(parts{iOtherPart}).centroid(1:2) - S.(parts{iPart}).closestWallPoint;
                 crossed = sign(dot(toWall, reference));
-                if crossed < 0,
+                if crossed < 0
                     %keyboard
-                    uncrossedState.(part{:}).centroid = lastS.(part{:}).centroid(1:2); %on first cross, store reference
-                    uncrossedState.(part{:}).closestWallPoint = S.(part{:}).closestWallPoint;
-                    uncrossedState.(part{:}).azimuth = lastS.(part{:}).azimuth;
+                    uncrossedState.(parts{iPart}).centroid = S.(parts{iOtherPart}).centroid(1:2); %on first cross, store reference location
+                    uncrossedState.(parts{iPart}).closestWallPoint = S.(parts{iPart}).closestWallPoint; %keep looking relative to wall point of crossing
+                    uncrossedState.(parts{iPart}).azimuth = lastS.(parts{iPart}).azimuth;
                 end
             else %already crossed, are we still crossed?
-                toWall    = S.(part{:}).centroid(1:2)              - uncrossedState.(part{:}).closestWallPoint;
-                reference = uncrossedState.(part{:}).centroid(1:2) - uncrossedState.(part{:}).closestWallPoint;
+                toWall    = S.(parts{iPart}).centroid(1:2)              - uncrossedState.(parts{iPart}).closestWallPoint;
+                reference = uncrossedState.(parts{iPart}).centroid(1:2) - uncrossedState.(parts{iPart}).closestWallPoint;
                 crossed = sign(dot(toWall, reference));
-                if crossed > 0 ,
-                    uncrossedState.(part{:}).centroid = []; %on uncross clear reference
-                    uncrossedState.(part{:}).closestWallPoint = [];
-                    uncrossedState.(part{:}).azimuth = [];
+                if crossed > 0
+                    uncrossedState.(parts{iPart}).centroid = []; %on uncross clear reference
+                    uncrossedState.(parts{iPart}).closestWallPoint = [];
+                    uncrossedState.(parts{iPart}).azimuth = [];
                 end
             end
             
             %set state based on whether we're currently crossed
-            if crossed < 0,
-                S.(part{:}).crossedWall = true;
+            if crossed < 0
+                S.(parts{iPart}).crossedWall = true;
             else
-                S.(part{:}).crossedWall = false;
+                S.(parts{iPart}).crossedWall = false;
             end
             
-            S.(part{:}).closestDistance = S.(part{:}).closestDistance * crossed; %becomes negative if crossed over
+            S.(parts{iPart}).closestDistance = S.(parts{iPart}).closestDistance * crossed; %becomes negative if crossed over
             %check if closestDistanceHand ~ norm(handToWall)
             %if crossed through, we don't care how far: implements 'infinite thickness wall'
-            if S.(part{:}).crossedWall && X.infiniteWalls
-                S.(part{:}).valueToSend = 0;
-                S.(part{:}).inProximity = true;
-                S.(part{:}).inWall      = true;
+            if S.(parts{iPart}).crossedWall && X.infiniteWalls
+                S.(parts{iPart}).valueToSend = 0;
+                S.(parts{iPart}).inProximity = true;
+                S.(parts{iPart}).inWall      = true;
             else
-                if abs(S.(part{:}).closestDistance) > X.mazeinfo.(part{:}).proximityThresh %far away from wall, sounds off (abs needed in case infiniteWalls=false
-                    S.(part{:}).valueToSend = 999;
-                    S.(part{:}).inProximity = false;
+                if abs(S.(parts{iPart}).closestDistance) > X.mazeinfo.(parts{iPart}).proximityThresh %far away from wall, sounds off (abs needed in case infiniteWalls=false
+                    S.(parts{iPart}).valueToSend = 999;
+                    S.(parts{iPart}).inProximity = false;
                 else %near wall--in proximity and possibly in wall
-                    S.(part{:}).valueToSend = abs(S.(part{:}).closestDistance/X.mazeinfo.(part{:}).proximityThresh)^1;
-                    S.(part{:}).inProximity = true;
+                    S.(parts{iPart}).valueToSend = abs(S.(parts{iPart}).closestDistance/X.mazeinfo.(parts{iPart}).proximityThresh)^1;
+                    S.(parts{iPart}).inProximity = true;
                     %test if in wall--NB, this is referenced to MAX's internal
                     %threshold for inWall sounds, NOT the wall size
                     %specified in X.mazeinfo.
-                    if (1 - S.(part{:}).valueToSend) > X.mazeinfo.(part{:}).in_wall_prox
-                        S.(part{:}).inWall = true;
+                    if (1 - S.(parts{iPart}).valueToSend) > X.mazeinfo.(parts{iPart}).in_wall_prox
+                        S.(parts{iPart}).inWall = true;
                     else
-                        S.(part{:}).inWall = false;
+                        S.(parts{iPart}).inWall = false;
                     end
                 end
             end %if crossed wall
