@@ -30,6 +30,7 @@ headProximityThresh = .15;
 %original maze was larger, we're trying a smaller one to avoid marker
 %dropout near edges of room--it's worst in northeast corner, which is not
 %part of any maze, but also w/sw wall/corner
+
 if 0,
     w = 6;
     h = 6.5;
@@ -125,6 +126,8 @@ X = simpleInit(X);
 
 %% run maze
 disp('Maze initiated. Press any key to begin.')
+% TODO: enable monitoring of mocap points here, without sound, to verify in
+% correct start position
 pause
 X.LSL.emitInfo(X.which_maze, X.mazeinfo.random_seed, X.trial_number);
 

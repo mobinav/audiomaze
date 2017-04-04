@@ -614,8 +614,8 @@ if frameNumber > 1
         % 11. finish by getting ready for the next frame
         
         %%% update title with informative info
-        title(sprintf('hand: %03.3f %c, head: %03.3f %c %s',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
-            S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,'(In Wall)','')),'fontsize',24);
+        title(sprintf('hand: %03.3f %c, head: %03.3f %c%s; ',S.hand.valueToSend, fastif(S.hand.crossedWall,'W',' '),...
+            S.head.valueToSend, fastif(S.head.crossedWall,'W',' '),fastif(isInWall,' (In Wall)','')),'fontsize',16);
        
         
     end % if frameNumber > 5
