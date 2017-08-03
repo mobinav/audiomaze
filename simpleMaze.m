@@ -94,6 +94,9 @@ if nargin ~= 3
     X.which_maze = whichMazePrompt();
     X.trial_number = whichTrialPrompt();
 else 
+    if ~ischar(subject_id)
+        subject_id = sprintf('%.d', subject_id);
+    end 
     X.subject_id = subject_id;
     X.which_maze = which_maze;
     X.trial_number = trial_number;
