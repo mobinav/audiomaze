@@ -1,4 +1,4 @@
-function simpleMaze()
+function simpleMaze(subject_id, which_maze, trial_number)
 % function for initiating a simple maze session
 close all
 stop_maze
@@ -9,16 +9,20 @@ stop_maze
 %save trial results here
 saveDirectory = fullfile('C:\Users\mobi\Desktop\AudiomazeTrialData','');
 
-debugMaze = false; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
+debugMaze = 1; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
 infiniteWalls = true; %if participant goes through a wall, keep warning regardless of how far they go
 inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clear: back away from the wall sound
 
 % phasespace
 % define what phasespace markers we'll use: primetime is suit, but we may
 %  use head/hand for debugging from time to time.
-phasespaceProfile = 'Audiomaze Suit'; %full suit
-%phasespaceProfile = 'Audiomaze Head7 & Hand';
+% phasespaceProfile = 'Audiomaze Suit'; %full suit
+phasespaceProfile = 'Audiomaze Head7 & Hand';
 %phasespaceProfile = 'Audiomaze Head4 & Hand';
+
+if strcmp(phasespaceProfile, 'Audiomaze Suit') ~= 1
+    warndlg('phasespaceProfile is not full suit!!!');
+end
 
 % maze dimensions (# cells)
 n_rows = 5;
@@ -66,12 +70,13 @@ defaultRewardStructure.maze.E.shape = 'T';
 defaultRewardStructure.maze.E.mazeReward = 2;
 
 defaultRewardStructure.maze.F.shape = '+';
-defaultRewardStructure.maze.F.mazeReward = 4;
+defaultRewardStructure.maze.F.mazeReward = 3;
 
 %set up general rewards and penalties
-defaultRewardStructure.mazeCompletedBonus = 1; %for exploring entire maze (reaching all goal tokens)
-defaultRewardStructure.wallTouchPenalty = 0.1; %for touching 'in' the wall
-defaultRewardStructure.wallProximityPenalty = 0.01; %for every touch of the 'warning zone' 
+defaultRewardStructure.mazeCompletedBonus = 0.5; %for exploring entire maze (reaching all goal tokens)
+defaultRewardStructure.wallTouchPenalty = 0.25; %for touching 'in' the wall
+defaultRewardStructure.wallProximityPenalty = 0; %for every touch of the 'warning zone' \
+defaultRewardStructure.armExtensionPenalty = 0.25; % for extending arm without returning to body
 
 %% general setup
 %set up paths
@@ -83,25 +88,26 @@ addpath(fullfile(audiomazeDir,'vr',''));
 global X;
 X=[];
 
-%% ask user which subject/maze/trial
-X.subject_id = input('Enter subject ID: ','s');
-X.subjectDirectory = ji_fullfile_mkdir(saveDirectory,X.subject_id,'');
+% which subject/maze/trial? prompt user of nargin ~= 3
+if nargin ~= 3
+    X.subject_id = input('Enter subject ID: ','s');
+    X.which_maze = whichMazePrompt();
+    X.trial_number = whichTrialPrompt();
+else 
+    X.subject_id = subject_id;
+    X.which_maze = which_maze;
+    X.trial_number = trial_number;
+end
 
 is_practice = false;
-which_maze = whichMazePrompt();
-if which_maze == 'P'
-    which_maze = 'A';
+if X.which_maze == 'P'
+    X.which_maze = 'A';
     is_practice = true;
-end
-X.which_maze = which_maze;
-
-if ~is_practice
-    X.trial_number = whichTrialPrompt();
-else
     X.trial_number = 0;
 end
 
 %setup other defaults
+X.subjectDirectory = ji_fullfile_mkdir(saveDirectory,X.subject_id,'');
 X.is_practice = is_practice; 
 X.doVrPlot = doVrPlot;
 X.debugMaze = debugMaze;
@@ -115,7 +121,7 @@ fprintf(2,'%s: Initiating %s maze for trial %d%s\n', X.subject_id, X.which_maze,
 % define rewards based on specific maze choice
 X.rewardStructure.shape = defaultRewardStructure.maze.(X.which_maze).shape;
 X.rewardStructure.mazeReward = defaultRewardStructure.maze.(X.which_maze).mazeReward;
-X.rewardStructure = ji_copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty'});
+X.rewardStructure = ji_copyfields(defaultRewardStructure, X.rewardStructure, {'mazeCompletedBonus', 'wallTouchPenalty', 'wallProximityPenalty', 'armExtensionPenalty'});
 X.rewardStructure.rewardReceived = 0.0;
 
 % maze geometry parameters
