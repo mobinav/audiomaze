@@ -18,7 +18,7 @@ inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clea
 %  use head/hand for debugging from time to time.
 % phasespaceProfile = 'Audiomaze Suit'; %full suit
 phasespaceProfile = 'Audiomaze Head7 & Hand';
-%phasespaceProfile = 'Audiomaze Head4 & Hand';
+% phasespaceProfile = 'Audiomaze Head4 & Hand';
 
 if strcmp(phasespaceProfile, 'Audiomaze Suit') ~= 1
     warndlg('phasespaceProfile is not full suit!!!');

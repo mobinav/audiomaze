@@ -409,7 +409,6 @@ if frameNumber > 1
             S.hand.isArmExtended = 0;
         elseif (timeIs - isArmExtendedTime > armExtendedTimeThreshold && ~isempty(S.hand.goodMarkers) && ~isempty(S.head.goodMarkers))
             S.hand.isArmExtended = 1;
-            X.LSL.MaxMSP.play_flourish(3, 'foo')
         end
         
         isInWall = S.hand.crossedWall | S.head.crossedWall;
@@ -538,6 +537,7 @@ if frameNumber > 1
         
         % arm extended
         if (S.hand.isArmExtended && ~lastS.hand.isArmExtended)
+            X.LSL.MaxMSP.play_flourish(4, 'foo')          
             X.performance.wallTouchScores.hand.numArmExtension = X.performance.wallTouchScores.hand.numArmExtension + 1;
             X.performance.wallTouchScores.hand.armExtensionDuration = timeIs; %hack: store start time here
             HEDtag = sprintf('Stimulus/Feedback,Stimulus/Auditory/ArmExtended/Onset/TouchCount/%d',X.performance.wallTouchScores.hand.numArmExtension);
