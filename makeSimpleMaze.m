@@ -129,26 +129,26 @@ normProximityThickness = X.mazeinfo.handProximityThresh*2 / mazeScale;
 [X.mazeGeometry.maze_poly_proximity,~] = make_maze_polygons_nr(X.mazeinfo.n_rows, X.mazeinfo.n_cols, normProximityThickness, maze(:,R),maze(:,B), X.mazeinfo.hasExits);
 
 %% debug plot
-if X.debugMaze,
-    figure
-    plot(X.mazeGeometry.maze_poly_wall(1,:),X.mazeGeometry.maze_poly_wall(2,:))
-    hold on
-    plot(X.mazeGeometry.maze_poly_proximity(1,:),X.mazeGeometry.maze_poly_proximity(2,:))
-    plot(X.mazeGeometry.maze_lines(:,1:2)', X.mazeGeometry.maze_lines(:,3:4)', 'linewidth',4)
-    %show grid squares
-    for k = 1:25,
-       r = floor((k-1)/5) + 1;
-       c = k - (r-1)*5;
-       text(c, (X.mazeinfo.n_rows+1)-r, num2str(k),'horizontalalignment','center','verticalalignment','middle')
-    end
-    text(-0.25,5.75,'NW')
-    hg = plot(X.mazeGeometry.token_locs(:,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(:,1),'rd','markersize',36);
-    hs = plot(X.mazeGeometry.token_locs(1,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(1,1),'gd','markersize',36);
-    legend([hs hg], 'start','goal')
-    title(upper(X.which_maze))
-    axis([0 X.mazeinfo.n_cols+1 0 X.mazeinfo.n_rows + 1])
-    axis equal
-    disp('Debug Maze Plot: control c to quit, return to continue to run the maze')
-    pause
-end
+% if X.debugMaze,
+%     figure
+%     plot(X.mazeGeometry.maze_poly_wall(1,:),X.mazeGeometry.maze_poly_wall(2,:))
+%     hold on
+%     plot(X.mazeGeometry.maze_poly_proximity(1,:),X.mazeGeometry.maze_poly_proximity(2,:))
+%     plot(X.mazeGeometry.maze_lines(:,1:2)', X.mazeGeometry.maze_lines(:,3:4)', 'linewidth',4)
+%     %show grid squares
+%     for k = 1:25,
+%        r = floor((k-1)/5) + 1;
+%        c = k - (r-1)*5;
+%        text(c, (X.mazeinfo.n_rows+1)-r, num2str(k),'horizontalalignment','center','verticalalignment','middle')
+%     end
+%     text(-0.25,5.75,'NW')
+%     hg = plot(X.mazeGeometry.token_locs(:,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(:,1),'rd','markersize',36);
+%     hs = plot(X.mazeGeometry.token_locs(1,2), (X.mazeinfo.n_rows+1)-X.mazeGeometry.token_locs(1,1),'gd','markersize',36);
+%     legend([hs hg], 'start','goal')
+%     title(upper(X.which_maze))
+%     axis([0 X.mazeinfo.n_cols+1 0 X.mazeinfo.n_rows + 1])
+%     axis equal
+%     disp('Debug Maze Plot: control c to quit, return to continue to run the maze')
+%     pause
+% end
 

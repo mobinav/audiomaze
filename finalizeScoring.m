@@ -8,17 +8,17 @@
  % SCORING
  %maximum possible includes a maze-dependent max (depends on number of
  %endpoints to find), and a completion bonus if found all endpoints.
- X.performance.maxEarning = X.rewardStructure.mazeReward + X.rewardStructure.mazeCompletedBonus * X.performance.foundAllTokens;
  
  %penalized for number of wall touches and number of wall proximity touches
  X.performance.lost = X.performance.wallTouchScores.hand.numProximityTouches * X.rewardStructure.wallProximityPenalty + ...
-     X.performance.wallTouchScores.hand.numWallTouches * X.rewardStructure.wallTouchPenalty;
+     X.performance.wallTouchScores.hand.numWallTouches * X.rewardStructure.wallTouchPenalty + ...
+      X.performance.wallTouchScores.hand.numArmExtension * X.rewardStructure.armExtensionPenalty;
  
  % earning for this trial
- X.performance.earned = max(0, X.performance.maxEarning - X.performance.lost); %don't let go negative
+ X.performance.earned = max(0, X.rewardStructure.mazeReward - X.performance.lost) + X.rewardStructure.mazeCompletedBonus * X.performance.foundAllTokens; %don't let go negative
  
- fprintf(2,'\n\nMaze %s, Trial %d End\n\tmaze value = %g\n\tmaze completed bonus = %g\n\n\t# proximity/wall touches = %d/%d\n\tdeduction = %g\n\nTOTAL = %g\n', ...
-     X.which_maze, X.trial_number, X.rewardStructure.mazeReward, X.rewardStructure.mazeCompletedBonus, X.performance.wallTouchScores.hand.numProximityTouches, ...
+ fprintf(2,'\n\nMaze %s, Trial %d End\n\tmaze value = %g\n\tmaze completed bonus = %g\n\n\t# arm extensions/wall touches = %d/%d\n\tdeduction = %g\n\nTOTAL = %g\n', ...
+     X.which_maze, X.trial_number, X.rewardStructure.mazeReward, X.rewardStructure.mazeCompletedBonus, X.performance.wallTouchScores.hand.numArmExtension, ...
      X.performance.wallTouchScores.hand.numWallTouches, X.performance.lost, X.performance.earned);
  
  % SAVE
