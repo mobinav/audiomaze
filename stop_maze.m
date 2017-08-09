@@ -5,10 +5,10 @@ fprintf(2,'Stopping maze...')
 if ~isempty(timerfindall)
     stop(timerfind('tag','accumulatorTimer'));
     delete(timerfind('tag','accumulatorTimer'));
-    fprintf(2,'Disable timer...');
+    fprintf(2,'Disabled timer...');
 end
 
-if isfield(X,'LSL'), 
+if isfield(X,'LSL')
     X.LSL.MaxMSP.play_sound(2,0,0,0,0,'OFF');
     X.LSL.MaxMSP.play_sound(1,0,0,0,0,'OFF');
     X.LSL.MaxMSP.play_sound(3,0,0,0,0,'OFF');

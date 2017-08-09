@@ -12,7 +12,7 @@ while 1
         xs = double(sample(3:4:end-1,end));
         conf = double(sample(4:4:end-1,end));
 
-        X.mocap.markerPosition = [ys, xs, zs, conf];
+        X.mocap.markerPosition = [xs, ys, zs, conf];
         
         if ~mod(frameNumber,480),
            fprintf('PS:                   [%.2f %.2f %.2f]\n',sample(1,end), sample(2,end), sample(3,end))

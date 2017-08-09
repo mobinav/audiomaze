@@ -3,7 +3,7 @@ function X = maze_init_LSL_outlets(X)
 %
 %  called by maze_init
 
-addpath(genpath('C:\DEVEL\labstreaminglayer\LSL\liblsl-Matlab'));
+addpath(genpath('C:\labstreaminglayer 1.0.28\LSL\liblsl-Matlab'));
 %keep reference to lib until inlets/outlets are deleted
 if isfield(X,'LSL'), lib = X.LSL.lib; X = rmfield(X,'LSL'); clear lib; end
 X.LSL.lib = lsl_loadlib();
@@ -43,8 +43,8 @@ X.LSL.outlet(1) = lsl_outlet(X.LSL.streamInfo(1));
 X.LSL.streamInfo(2) = lsl_streaminfo(X.LSL.lib,'behaviorData','Behavior',12,0,'cf_float32','behaviorData1234');
 chns = X.LSL.streamInfo(2).desc().append_child('channels');
 for label = {...
-        'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y',...
-        'handCentroid_x','handCentroid_y','handAzimuth','handDistance','closestWallPointHand_x','closestWallPointHand_y'}
+        'handCentroid_x','handCentroid_y','handAzimuth','handDistance','closestWallPointHand_x','closestWallPointHand_y',...
+        'headCentroid_x','headCentroid_y','headAzimuth','headDistance','closestWallPointHead_x','closestWallPointHead_y'}
     ch=chns.append_child('channel');
     ch.append_child_value('label', label{1});
 end
@@ -59,10 +59,8 @@ end
 X.LSL.outlet(3) = lsl_outlet(X.LSL.streamInfo(3));
 
 % just to record the stats at the end of the run
-X.LSL.streamInfo(4) = lsl_streaminfo(X.LSL.lib,'trialStats','Event',9,0,'cf_float32','trialStats1234');
-for label = {'averageVelocity', 'handNearWallTotalCount', 'handTouchingWallTotalCount',...
-        'handNearWallTotalTime', 'handTouchingWallTotalTime', 'headNearWallTotalCount',...
-        'headTouchingWallTotalCount', 'headNearWallTotalTime', 'headTouchingWallTotalTime'}
+X.LSL.streamInfo(4) = lsl_streaminfo(X.LSL.lib,'trialResults','Event',3,0,'cf_string','trialResults1234');
+for label = {'X.saveFilename', 'X.rewardStructure', 'X.performance'}
     ch= chns.append_child('channel');
     ch.append_child_value('label', label{1});
 end
@@ -92,5 +90,5 @@ X.LSL.emitBehaviorFrame = @(frameData, timeStamp) ...
     X.LSL.outlet(2).push_sample(frameData, timeStamp);
 X.LSL.emitInfo = @(which_maze, random_seed, trial_number) ...
     X.LSL.outlet(3).push_sample({which_maze, num2str(random_seed), num2str(trial_number)});
-X.LSL.emitStats = @(statData) ...
-    X.LSL.outlet(4).push_sample(statData);
+X.LSL.emitResults = @(filename, rewardStruct, performanceStruct) ...
+    X.LSL.outlet(4).push_sample({filename, ji_struct2json(rewardStruct), ji_struct2json(performanceStruct)}); %NB, serialize structures

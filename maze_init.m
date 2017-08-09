@@ -23,21 +23,21 @@ X.outTokenTol = 1.5; % you must get this far away until you can replay
 X.canFlourish = 0;
 
 % 8/26/2016 DEM
-X.totalTimeNearWallHand = 0;
-X.totalTimeNearWallHead = 0;
-X.totalTimeTouchingWallHand = 0;
-X.totalTimeTouchingWallHead = 0;
-X.totalTimeInWallHand = 0;
-X.totalTimeInWallHead = 0;
-X.lingeringWallCntHand = 0;
-X.touchingWallCntHand = 0;
-X.touchingWallCntHead = 0;
-X.nearWallCntHand = 0;
-X.nearWallCntHead = 0;
-X.inWallCntHead = 0;
-X.inWallCntHand = 0;
-X.inWallCnt = 0;
-X.timeTotal = 0;
+% X.totalTimeNearWallHand = 0;
+% X.totalTimeNearWallHead = 0;
+% X.totalTimeTouchingWallHand = 0;
+% X.totalTimeTouchingWallHead = 0;
+% X.totalTimeInWallHand = 0;
+% X.totalTimeInWallHead = 0;
+% X.lingeringWallCntHand = 0;
+% X.touchingWallCntHand = 0;
+% X.touchingWallCntHead = 0;
+% X.nearWallCntHand = 0;
+% X.nearWallCntHead = 0;
+% X.inWallCntHead = 0;
+% X.inWallCntHand = 0;
+% X.inWallCnt = 0;
+ X.timeTotal = 0;
 
 % determine the 'in wall' proximity threshold according to how max/msp
 % understands it (midi units, 0-127)
