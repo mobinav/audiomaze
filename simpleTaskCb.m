@@ -164,7 +164,7 @@ if ~isempty(sample)
         % 1) pick the last good observation for each marker within this chunk
         %(an edge case, since it only helps when the
         %dropout occurs during the chunk, which is probably rare?)
-        ys = sample(1:4:end-17,:); %N %hardcoding 17. rigid bodies (2 total, hand and head) are at the end and 8 channels [x y z conf a b c d] (quarternions)
+        ys = sample(1:4:end-17,:); %N %hardcoding end value. trigger (1) + rigid bodies (2 total, hand and head) are at the end and 8 channels [x y z conf a b c d] (quarternions)
         zs = sample(2:4:end-17,:); %up
         xs = sample(3:4:end-17,:); %E
         conf = sample(4:4:end-17,:);
@@ -231,23 +231,23 @@ end %if sample
 % default to last good position, in case the whole thing is missing
 % todo: implement John's more robust head positioner
 if frameNumber > 1   
-    yHeadRB = sample(end-15,:); %N
-    zHeadRB = sample(end-14,:); %up
-    xHeadRB = sample(end-13,:); %E
-    confHeadRB = sample(end-12,:);
+    yHeadRB = nanmedian(sample(end-16,:)); %N
+    zHeadRB = nanmedian(sample(end-15,:)); %up
+    xHeadRB = nanmedian(sample(end-14,:)); %E
+    confHeadRB = nanmedian(sample(end-9,:));
     
     if confHeadRB > 0
-        S.hand.centroid = [xHeadRB, yHeadRB, zHeadRB];
+        S.head.centroid = [xHeadRB, yHeadRB, zHeadRB];
     else
         S.head.centroid = lastS.head.centroid;
         fprintf(2,'No head');
 
     end
     
-    yHandRB = sample(end-7,:); %N
-    zHandRB = sample(end-6,:); %up
-    xHandRB = sample(end-5,:); %E
-    confHandRB = sample(end-4,:);
+    yHandRB = nanmedian(sample(end-8,:)); %N
+    zHandRB = nanmedian(sample(end-7,:)); %up
+    xHandRB = nanmedian(sample(end-6,:)); %E
+    confHandRB = nanmedian(sample(end-1,:));
     
     if confHandRB > 0
         S.hand.centroid = [xHandRB, yHandRB, zHandRB];
