@@ -25,6 +25,13 @@ switch lower(X.phasespaceProfile),
         X.mocap.markers.headOrientation = 5:7; %L-Nose-R
         X.mocap.markers.rightHand = 8:11; %four fingertips
         X.mocap.markers.leftHand = [];
+    
+    case 'audiomaze head7 & hand with rigid body'
+        X.mocap.markers.phasespaceProfile = 'Audiomaze Head7 & Hand with Rigid Body';
+        X.mocap.markers.head = 1:4; %headCenter al, ar, pl, pr
+        X.mocap.markers.headOrientation = 5:7; %L-Nose-R
+        X.mocap.markers.rightHand = 8:11; %four fingertips
+        X.mocap.markers.leftHand = [];
         
     case 'audiomaze head4 & hand'
         X.mocap.markers.phasespaceProfile = 'Audiomaze Head4 & Hand';

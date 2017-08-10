@@ -17,13 +17,15 @@ inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clea
 % define what phasespace markers we'll use: primetime is suit, but we may
 %  use head/hand for debugging from time to time.
 
-phasespaceProfile = 'Audiomaze Suit'; %full suit
-%phasespaceProfile = 'Audiomaze Head7 & Hand';
+% phasespaceProfile = 'Audiomaze Suit'; %full suit
+% phasespaceProfile = 'Audiomaze Head7 & Hand';
 %phasespaceProfile = 'Audiomaze Head4 & Hand';
+phasespaceProfile = 'Audiomaze Head7 & Hand with Rigid Body';
 
-if strcmp(phasespaceProfile, 'Audiomaze Suit') ~= 1
-    warndlg('phasespaceProfile is not full suit!!!');
-end
+% 
+% if strcmp(phasespaceProfile, 'Audiomaze Suit') ~= 1
+%     warndlg('phasespaceProfile is not full suit!!!');
+% end
 
 % maze dimensions (# cells)
 n_rows = 5;

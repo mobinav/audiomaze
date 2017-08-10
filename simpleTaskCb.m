@@ -160,16 +160,16 @@ if ~isempty(sample)
     %convert phasespace coords to a more conventional system
     %where X = East, Y = North, Z = up--makes most sense sitting in control room
     %phasespace oriented to x=north, y=up, z=east
-    if 1,
+
         % 1) pick the last good observation for each marker within this chunk
         %(an edge case, since it only helps when the
         %dropout occurs during the chunk, which is probably rare?)
-        ys = sample(1:4:end-1,:); %N
-        zs = sample(2:4:end-1,:); %up
-        xs = sample(3:4:end-1,:); %E
-        conf = sample(4:4:end-1,:);
+        ys = sample(1:4:end-17,:); %N %hardcoding 17. rigid bodies (2 total, hand and head) are at the end and 8 channels [x y z conf a b c d] (quarternions)
+        zs = sample(2:4:end-17,:); %up
+        xs = sample(3:4:end-17,:); %E
+        conf = sample(4:4:end-17,:);
         
-        goodObservation = sample(4:4:end-1,:) ~= -1; %marker 'confidence' if = -1, it's missing
+        goodObservation = sample(4:4:end-17,:) ~= -1; %marker 'confidence' if = -1, it's missing
         [nMarkers, nSamples] = size(goodObservation);
         idx = ones(nMarkers, 1) * [1:nSamples];
         lastGoodObs = max(goodObservation .* idx, [], 2);
@@ -179,13 +179,6 @@ if ~isempty(sample)
         ys = ys(lastGoodObsIndex);
         zs = zs(lastGoodObsIndex);
         conf = conf(lastGoodObsIndex);
-    else %simple--just take last sample
-        ys = sample(1:4:end-1,end); %N
-        zs = sample(2:4:end-1,end); %up
-        xs = sample(3:4:end-1,end); %E
-        conf = sample(4:4:end-1,end);
-        nMarkers = length(ys);
-    end
     
     %X.mocap.markerPosition = [ys, xs, zs, conf];
     %March 22, 2017 we recalibrated and it seems to have changed the phase space coords!
@@ -237,14 +230,30 @@ end %if sample
 %% find head and hand locations
 % default to last good position, in case the whole thing is missing
 % todo: implement John's more robust head positioner
-if frameNumber > 1
-    for part = {'hand','head'}
-        if ~isempty(S.(part{:}).goodMarkers)
-            S.(part{:}).centroid = nanmedian(S.(part{:}).goodMarkers(:,1:3),1);
-        else
-            S.(part{:}).centroid = lastS.(part{:}).centroid;
-            fprintf(2,'No %s\n', part{:});
-        end
+if frameNumber > 1   
+    yHeadRB = sample(end-15,:); %N
+    zHeadRB = sample(end-14,:); %up
+    xHeadRB = sample(end-13,:); %E
+    confHeadRB = sample(end-12,:);
+    
+    if confHeadRB > 0
+        S.hand.centroid = [xHeadRB, yHeadRB, zHeadRB];
+    else
+        S.head.centroid = lastS.head.centroid;
+        fprintf(2,'No head');
+
+    end
+    
+    yHandRB = sample(end-7,:); %N
+    zHandRB = sample(end-6,:); %up
+    xHandRB = sample(end-5,:); %E
+    confHandRB = sample(end-4,:);
+    
+    if confHandRB > 0
+        S.hand.centroid = [xHandRB, yHandRB, zHandRB];
+    else
+        S.hand.centroid = lastS.hand.centroid;
+        fprintf(2,'No hand');
     end
     
     S.hand.isArmExtended = 0;
