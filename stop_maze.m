@@ -5,7 +5,7 @@ fprintf(2,'Stopping maze...')
 if ~isempty(timerfindall)
     stop(timerfind('tag','accumulatorTimer'));
     delete(timerfind('tag','accumulatorTimer'));
-    fprintf(2,'Disabled timer...');
+    fprintf(2,'Disable timer...');
 end
 
 if isfield(X,'LSL')

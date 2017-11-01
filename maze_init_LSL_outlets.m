@@ -3,7 +3,7 @@ function X = maze_init_LSL_outlets(X)
 %
 %  called by maze_init
 
-addpath(genpath('C:\labstreaminglayer 1.0.28\LSL\liblsl-Matlab'));
+addpath(genpath('C:\DEVEL\labstreaminglayer\LSL\liblsl-Matlab'));
 %keep reference to lib until inlets/outlets are deleted
 if isfield(X,'LSL'), lib = X.LSL.lib; X = rmfield(X,'LSL'); clear lib; end
 X.LSL.lib = lsl_loadlib();
