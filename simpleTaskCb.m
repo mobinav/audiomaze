@@ -397,6 +397,50 @@ if frameNumber > 1
                         S.(parts{iPart}).inWall = true;
                     else
                         S.(parts{iPart}).inWall = false;
+
+            % if we were not in a wall, check to see if we are now
+            if ~isInWall
+
+                % check for hand crossing
+                for n=1:length(X.am.hasNeighbors{closestWallIdHand})
+
+                    % cycle through connected wall endpoints and check
+                    A = X.am.mazeWalls(X.am.hasNeighbors{closestWallIdHand}(n), 1:2:3);
+                    B = X.am.mazeWalls(X.am.hasNeighbors{closestWallIdHand}(n), 2:2:4);
+
+                    % check if there is a wall between head and hand
+                    isInWall = doesIntersect(A,B,C,D);
+                    %%%% HED enter wall here
+
+                    if isInWall
+                        figure(X.am.fig_handle)
+                        title('in wall');
+                        % check if hand or head crossed first
+                        if whichSide(C, A, B) ~= whichSide(lastHandCentroid, A, B)
+                            handCrossed = 1;
+                            valueToSendHand = 0;
+                            lastWallIdHand = closestWallIdHand; % keep track of this
+                            % plot for now
+                            g=findobj(gcf,'tag','handCrossedWall');
+                            if ~isempty(g)
+                                delete(g)
+                            end
+                            line(X.am.mazeWalls(closestWallIdHand,1:2), X.am.mazeWalls(closestWallIdHand,3:4), 'linewidth', 10, 'color','r', 'tag', 'handCrossedWall');
+                            %break; % got one, no need to continue
+                        end
+
+                        if whichSide(D, A, B) ~= whichSide(lastHeadCentroid, A, B)
+                            headCrossed = 1;
+                            valueToSendHead = 0;
+                            lastWallIdHead = closestWallIdHead; % keep track of this
+                            % plot for now
+                            g=findobj(gcf,'tag','headCrossedWall');
+                            if ~isempty(g)
+                                delete(g)
+                            end
+                            line(X.am.mazeWalls(closestWallIdHead,1:2), X.am.mazeWalls(closestWallIdHead,3:4), 'linewidth', 10, 'color','b','linestyle','--', 'tag', 'headCrossedWall');
+                            %break; % got one, no need to continue
+                        end
                     end
                 end
             end %if crossed wall
