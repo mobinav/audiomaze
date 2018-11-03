@@ -9,16 +9,17 @@ stop_maze
 %save trial results here
 saveDirectory = fullfile('C:\Users\mobi\Desktop\AudiomazeTrialData','');
 
-debugMaze = 1; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
+debugMaze = 0; %when true will plot the maze as well as run the debug loop in simpleTaskMainLoop
 infiniteWalls = true; %if participant goes through a wall, keep warning regardless of how far they go
 inWallFreezeAzimuth = true; %when in wall, fix azimuth, so instructions are clear: back away from the wall sound
 
 % phasespace
 % define what phasespace markers we'll use: primetime is suit, but we may
 %  use head/hand for debugging from time to time.
-% phasespaceProfile = 'Audiomaze Suit'; %full suit
-phasespaceProfile = 'Audiomaze Head7 & Hand';
-% phasespaceProfile = 'Audiomaze Head4 & Hand';
+
+phasespaceProfile = 'Audiomaze Suit'; %full suit
+%phasespaceProfile = 'Audiomaze Head7 & Hand';
+%phasespaceProfile = 'Audiomaze Head4 & Hand';
 
 if strcmp(phasespaceProfile, 'Audiomaze Suit') ~= 1
     warndlg('phasespaceProfile is not full suit!!!');

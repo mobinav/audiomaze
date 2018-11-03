@@ -13,3 +13,4 @@ velocityFile
 *~
 .DS_Store
 
+*.orig
